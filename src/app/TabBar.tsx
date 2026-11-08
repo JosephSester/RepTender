@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 
 export const TABS: { to: string; label: string; icon: string; end?: boolean }[] = [
   { to: '/', label: 'Pets', icon: '🦎', end: true },
+  { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export function TabBar() {

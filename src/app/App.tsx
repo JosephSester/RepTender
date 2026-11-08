@@ -5,6 +5,7 @@ import PetsHome from '../features/pets/PetsHome';
 import PetProfile from '../features/pets/PetProfile';
 import PetForm from '../features/pets/PetForm';
 import FeedingHistory from '../features/feedings/FeedingHistory';
+import SettingsScreen from '../features/settings/SettingsScreen';
 
 export function AppRoutes() {
   return (
@@ -15,6 +16,7 @@ export function AppRoutes() {
         <Route path="pets/:id/edit" element={<PetForm />} />
         <Route path="pets/:id" element={<PetProfile />} />
         <Route path="pets/:id/feedings" element={<FeedingHistory />} />
+        <Route path="settings" element={<SettingsScreen />} />
       </Route>
     </Routes>
   );
