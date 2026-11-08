@@ -4,6 +4,7 @@ import ThemeSync from '../theme/ThemeSync';
 import PetsHome from '../features/pets/PetsHome';
 import PetProfile from '../features/pets/PetProfile';
 import PetForm from '../features/pets/PetForm';
+import FeedingHistory from '../features/feedings/FeedingHistory';
 
 export function AppRoutes() {
   return (
@@ -13,6 +14,7 @@ export function AppRoutes() {
         <Route path="pets/new" element={<PetForm />} />
         <Route path="pets/:id/edit" element={<PetForm />} />
         <Route path="pets/:id" element={<PetProfile />} />
+        <Route path="pets/:id/feedings" element={<FeedingHistory />} />
       </Route>
     </Routes>
   );
