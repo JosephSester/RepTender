@@ -3,6 +3,7 @@ dist/
 dev-dist/
 coverage/
 .superpowers/
+.claude/settings.local.json
 .env
 .env.*
 *.log
