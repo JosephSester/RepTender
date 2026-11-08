@@ -23,6 +23,12 @@
   --shadow: 0 1px 3px rgba(80, 60, 20, 0.08);
   --hero: radial-gradient(circle at 70% 35%, #f2b66b, #c9773c 70%);
   --banner: linear-gradient(135deg, #e9a04b, #d9783a);
+  /* Text on filled surfaces (contrast): amber fills take dark text, banner text 4.55-6.51:1. */
+  --on-amber: #2e2a24;
+  --on-banner: #2e2a24;
+  --banner-btn-text: #9a4a12;
+  --on-late-fill: #ffffff;
+  --planned-text: #a9541c;
 }
 
 :root[data-theme='dark'] {
@@ -48,5 +54,10 @@
   --tab-line: #2e2a23;
   --shadow: 0 0 0 1px #2c2820;
   --hero: radial-gradient(circle at 70% 35%, #b9772f, #5a3416 75%);
-  --banner: linear-gradient(135deg, #b9772f, #94501f);
+  --banner: linear-gradient(135deg, #9f6220, #8a4519);
+  --on-amber: #2e2a24;
+  --on-banner: #ffffff;
+  --banner-btn-text: #9a4a12;
+  --on-late-fill: #171511;
+  --planned-text: #f2b66b;
 }
