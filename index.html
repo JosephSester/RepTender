@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RepTender" />
+    <meta name="theme-color" content="#F6F1E7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171511" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/RepTender/icons/apple-touch-icon-180.png" />
+    <link rel="icon" type="image/svg+xml" href="/RepTender/icons/icon.svg" />
+    <title>RepTender</title>
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('reptender-theme') || 'auto';
+          var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
