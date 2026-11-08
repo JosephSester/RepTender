@@ -24,6 +24,7 @@ export default function SettingsScreen() {
       <h1>Settings</h1>
       <Card style={{ marginTop: 12 }}>
         <div className="row">
+          <img src={`${import.meta.env.BASE_URL}icons/icon.svg`} alt="" width={48} height={48} style={{ borderRadius: 12 }} />
           <div className="grow">
             <b style={{ fontSize: 17 }}>RepTender</b>
             <div className="muted">{`${petCount ?? 0} pets · version ${__APP_VERSION__}`}</div>

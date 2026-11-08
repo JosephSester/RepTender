@@ -5,4 +5,16 @@ A free home-screen web app for keeping track of reptile feedings and husbandry: 
 - **Design spec:** [docs/superpowers/specs/2026-11-08-reptender-design.md](docs/superpowers/specs/2026-11-08-reptender-design.md)
 - **Approved mockups:** [docs/design/](docs/design/)
 
-Status: design phase. Implementation hasn't started yet.
+## Develop
+
+```bash
+npm install
+npm run dev        # http://localhost:5173/RepTender/
+npm test
+```
+
+Pushing to `main` deploys to https://josephsester.github.io/RepTender/.
+
+## Install on iPhone
+
+Open the link above in Safari → Share → **Add to Home Screen**.
