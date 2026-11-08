@@ -1,8 +1,14 @@
-import { render, screen } from '@testing-library/react';
-import { it, expect } from 'vitest';
-import App from './App';
+import { beforeEach, it, expect } from 'vitest';
+import { screen } from '@testing-library/react';
+import { renderAt } from '../test/render';
+import { resetDb } from '../db/db';
 
-it('renders the app name', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'RepTender' })).toBeInTheDocument();
+beforeEach(async () => {
+  await resetDb();
+});
+
+it('opens on the Pets home screen with a tab bar', async () => {
+  renderAt('/');
+  expect(await screen.findByRole('heading', { name: 'My Reptiles' })).toBeInTheDocument();
+  expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
 });

@@ -1,3 +1,23 @@
+import { HashRouter, Route, Routes } from 'react-router-dom';
+import AppShell from './AppShell';
+import ThemeSync from '../theme/ThemeSync';
+import PetsHome from '../features/pets/PetsHome';
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<PetsHome />} />
+      </Route>
+    </Routes>
+  );
+}
+
 export default function App() {
-  return <h1>RepTender</h1>;
+  return (
+    <HashRouter>
+      <ThemeSync />
+      <AppRoutes />
+    </HashRouter>
+  );
 }
