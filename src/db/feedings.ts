@@ -67,9 +67,16 @@ export async function logFeeding(input: LogFeedingInput): Promise<Feeding> {
       quantity: input.quantity, outcome: input.outcome, notes: clean(input.notes),
       createdAt: ts, updatedAt: ts,
     };
+    const previous = await listFeedings(pet.id);
     await db.feedings.add(feeding);
     if (input.outcome === 'ate') {
-      await db.pets.update(pet.id, { nextFeedingOverride: undefined, updatedAt: ts }); // spec §7 rule 4
+      // Spec §7 rule 4: the next eaten meal clears the push-back. A backfilled meal older than
+      // the latest one it already ate is not "next", so it must leave an active push-back alone.
+      const newest = previous.filter((f) => f.outcome === 'ate').reduce<number | undefined>(
+        (max, f) => (max === undefined || Date.parse(f.at) > max ? Date.parse(f.at) : max), undefined);
+      if (newest === undefined || Date.parse(input.at) > newest) {
+        await db.pets.update(pet.id, { nextFeedingOverride: undefined, updatedAt: ts });
+      }
     }
     if (input.regurgitated) {
       await addRegurgitation(pet, {

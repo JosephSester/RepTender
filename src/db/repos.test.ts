@@ -87,6 +87,20 @@ describe('feedings', () => {
     expect((await getPet(p.id))!.nextFeedingOverride).toBeUndefined();
   });
 
+  it('a backfilled older meal keeps an active push-back; a newer meal clears it', async () => {
+    const p = await noodle();
+    await logFeeding({
+      petId: p.id, at: at(3), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+      regurgitated: { foundAt: at(4, 7, 30), pushBackDays: 10 },
+    });
+    const override = (await getPet(p.id))!.nextFeedingOverride;
+    expect(override).toBeDefined();
+    await logFeeding({ petId: p.id, at: at(1), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate' });
+    expect((await getPet(p.id))!.nextFeedingOverride).toBe(override);
+    await logFeeding({ petId: p.id, at: at(8), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate' });
+    expect((await getPet(p.id))!.nextFeedingOverride).toBeUndefined();
+  });
+
   it('Regurgitated creates both records and pushes the next feeding back', async () => {
     const p = await noodle();
     const meal = await logFeeding({
