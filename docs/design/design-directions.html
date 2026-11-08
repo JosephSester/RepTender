@@ -1,0 +1,284 @@
+<style>
+  .board-intro { max-width: 820px; }
+  .direction { border: 2px solid transparent; border-radius: 18px; padding: 18px 18px 22px; margin: 0 0 28px; background: var(--bg-secondary); cursor: pointer; transition: border-color .15s; }
+  .direction:hover { border-color: var(--border); }
+  .direction.selected { border-color: #4f8cff; box-shadow: 0 0 0 3px rgba(79,140,255,.18); }
+  .dir-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .dir-head .tag { font: 700 12px/1 system-ui; padding: 5px 9px; border-radius: 99px; background: var(--bg-tertiary); }
+  .dir-head h3 { margin: 0; }
+  .dir-desc { margin: 0 0 14px; opacity: .75; font-size: 14px; max-width: 760px; }
+  .swatches { display: inline-flex; gap: 4px; vertical-align: middle; margin-left: 6px; }
+  .swatches i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,.12); }
+  .phones { display: flex; gap: 22px; flex-wrap: wrap; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .phone-cap { font: 600 12px system-ui; opacity: .7; }
+
+  /* ---------- phone shell ---------- */
+  .phone { width: 252px; height: 530px; border-radius: 38px; border: 9px solid #101010; position: relative; overflow: hidden; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; font-size: 11px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .phone::before { content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 12px; background: #101010; z-index: 5; }
+  .sb { height: 34px; display: flex; justify-content: space-between; align-items: center; padding: 6px 20px 0; font-weight: 600; font-size: 10.5px; }
+  .scr { position: absolute; inset: 34px 0 0 0; overflow: hidden; padding: 0 12px; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; display: flex; justify-content: space-around; align-items: flex-start; padding-top: 8px; font-size: 8.5px; z-index: 3; }
+  .tabs span { display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: .5; }
+  .tabs span.on { opacity: 1; }
+  .tabs b { font-size: 15px; font-weight: 400; }
+  .av { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .row { display: flex; align-items: center; gap: 9px; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { opacity: .62; }
+  .t-name { font-weight: 700; font-size: 12px; }
+  .pill { font-weight: 700; font-size: 9px; padding: 3px 7px; border-radius: 99px; white-space: nowrap; }
+  .sheet-grab { width: 34px; height: 4px; border-radius: 4px; margin: 8px auto 10px; }
+
+  /* ---------- A: Terrarium (warm light) ---------- */
+  .dA .phone { background: #F6F1E7; color: #2E2A24; }
+  .dA .title { font: 800 22px/1.1 ui-rounded, "SF Pro Rounded", system-ui; margin: 4px 0 2px; }
+  .dA .card { background: #fff; border-radius: 16px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(80,60,20,.08); }
+  .dA .av { width: 44px; height: 44px; border-radius: 13px; font-size: 24px; }
+  .dA .due { background: linear-gradient(135deg,#E9A04B,#D9783A); color: #fff; border-radius: 18px; padding: 12px; margin: 10px 0; }
+  .dA .due .btn { background: #fff; color: #C4672C; font-weight: 800; padding: 6px 12px; border-radius: 99px; font-size: 10px; }
+  .dA .bar { height: 4px; background: #EFE6D6; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+  .dA .bar i { display: block; height: 100%; background: #4E7A3A; border-radius: 4px; }
+  .dA .p-ok { background: #E3EEDB; color: #3F6B2C; } .dA .p-due { background: #FCE7CF; color: #B85E1F; } .dA .p-late { background: #F8D9D4; color: #B23A2B; }
+  .dA .tabs { background: #fffdf8; border-top: 1px solid #EBE2D1; color: #4E7A3A; }
+  .dA .hero { margin: 0 -12px; height: 150px; display: flex; align-items: flex-end; padding: 12px; font-size: 64px; position: relative; background: radial-gradient(circle at 70% 35%, #F2B66B, #C9773C 70%); color: #fff; }
+  .dA .hero .ico { position: absolute; right: 22px; top: 18px; }
+  .dA .chip { background: #EFE6D6; border-radius: 99px; padding: 3px 8px; font-size: 9.5px; font-weight: 600; display: inline-block; margin: 0 3px 3px 0; }
+  .dA .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dA .stat { background: #fff; border-radius: 12px; padding: 7px 9px; }
+  .dA .stat b { display: block; font-size: 13px; }
+  .dA .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: #8B7E68; margin: 10px 0 5px; }
+  .dA .opt { border: 1.5px solid #E5DAC6; border-radius: 99px; padding: 5px 9px; font-size: 10px; font-weight: 600; display: inline-block; margin: 0 4px 5px 0; background: #fff; }
+  .dA .opt.on { background: #4E7A3A; border-color: #4E7A3A; color: #fff; }
+  .dA .field { background: #fff; border-radius: 12px; padding: 9px 10px; display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .dA .save { background: #4E7A3A; color: #fff; text-align: center; font-weight: 800; padding: 11px; border-radius: 14px; margin-top: 10px; font-size: 12px; }
+
+  /* ---------- B: Night Vivarium (dark) ---------- */
+  .dB .phone { background: #0D1310; color: #E6EFE8; }
+  .dB .title { font: 800 21px/1.1 system-ui; margin: 4px 0 2px; letter-spacing: -.02em; }
+  .dB .acc { color: #A6E35A; }
+  .dB .story { display: flex; gap: 10px; margin: 12px 0 14px; }
+  .dB .ring { width: 52px; height: 52px; border-radius: 50%; padding: 3px; display: flex; align-items: center; justify-content: center; }
+  .dB .ring .av { width: 100%; height: 100%; border-radius: 50%; background: #17211B; font-size: 22px; }
+  .dB .story small { display: block; text-align: center; margin-top: 4px; font-size: 9px; }
+  .dB .q { background: #151E19; border: 1px solid #1F2B24; border-radius: 16px; padding: 10px; margin-bottom: 8px; }
+  .dB .count { font: 800 22px/1 system-ui; width: 40px; text-align: center; }
+  .dB .count small { display: block; font-size: 8px; font-weight: 600; opacity: .6; margin-top: 2px; }
+  .dB .av.sq { width: 38px; height: 38px; border-radius: 12px; background: #1E2A23; font-size: 20px; }
+  .dB .tabs { background: rgba(13,19,16,.92); border-top: 1px solid #1F2B24; color: #A6E35A; }
+  .dB .bigring { width: 112px; height: 112px; border-radius: 50%; margin: 10px auto 8px; padding: 5px; background: conic-gradient(#A6E35A 0 60%, #24312A 60% 100%); box-shadow: 0 0 34px rgba(166,227,90,.25); }
+  .dB .bigring .av { width: 100%; height: 100%; border-radius: 50%; background: #17211B; font-size: 52px; }
+  .dB .center { text-align: center; }
+  .dB .seg { display: flex; background: #151E19; border-radius: 10px; padding: 3px; margin: 10px 0; }
+  .dB .seg span { flex: 1; text-align: center; padding: 5px 0; border-radius: 8px; font-weight: 600; font-size: 10px; opacity: .6; }
+  .dB .seg span.on { background: #24312A; opacity: 1; color: #A6E35A; }
+  .dB .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dB .tile { background: #151E19; border: 1px solid #1F2B24; border-radius: 12px; padding: 8px; }
+  .dB .tile b { display: block; font-size: 14px; margin-top: 2px; }
+  .dB .tree { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+  .dB .tree div { flex: 1; background: #151E19; border: 1px dashed #2D3D34; border-radius: 10px; padding: 6px; text-align: center; font-size: 9.5px; }
+  .dB .prey { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 8px 0; }
+  .dB .prey div { background: #151E19; border: 1.5px solid #1F2B24; border-radius: 12px; padding: 9px 2px; text-align: center; font-size: 9px; }
+  .dB .prey div b { display: block; font-size: 20px; font-weight: 400; margin-bottom: 2px; }
+  .dB .prey div.on { border-color: #A6E35A; background: #1C2A15; }
+  .dB .counter { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 10px 0; }
+  .dB .counter span { width: 36px; height: 36px; border-radius: 50%; background: #1E2A23; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .dB .counter b { font: 800 40px/1 system-ui; }
+  .dB .hold { background: #A6E35A; color: #0D1310; font-weight: 800; text-align: center; padding: 13px; border-radius: 16px; font-size: 12px; margin-top: 8px; }
+
+  /* ---------- C: Field Journal (iOS native) ---------- */
+  .dC .phone { background: #F2F2F7; color: #111; }
+  .dC .title { font: 800 23px/1.1 -apple-system, system-ui; margin: 4px 0 6px; letter-spacing: -.02em; }
+  .dC .tint { color: #0E9F86; }
+  .dC .week { display: flex; justify-content: space-between; background: #fff; border-radius: 12px; padding: 7px 6px; margin-bottom: 10px; }
+  .dC .week div { text-align: center; width: 26px; font-size: 8.5px; color: #888; }
+  .dC .week div b { display: block; font-size: 12px; color: #111; margin: 2px 0; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; margin-left: 2px; }
+  .dC .week div.on b { background: #0E9F86; color: #fff; }
+  .dC .week i { display: block; width: 4px; height: 4px; border-radius: 50%; background: #0E9F86; margin: 0 auto; }
+  .dC .sec { font-size: 9px; text-transform: uppercase; color: #6d6d72; margin: 8px 6px 4px; letter-spacing: .03em; }
+  .dC .group { background: #fff; border-radius: 11px; overflow: hidden; }
+  .dC .cell { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-bottom: .5px solid #E2E2E6; }
+  .dC .cell:last-child { border-bottom: 0; }
+  .dC .cell .k { flex: 1; } .dC .cell .v { color: #8a8a8e; }
+  .dC .chev::after { content: "›"; color: #C4C4C7; font-size: 15px; margin-left: 4px; }
+  .dC .av { width: 32px; height: 32px; border-radius: 50%; font-size: 17px; }
+  .dC .tabs { background: rgba(249,249,249,.95); border-top: .5px solid #D8D8DC; color: #0E9F86; }
+  .dC .nav { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 4px 0 8px; }
+  .dC .nav b { font-size: 12px; }
+  .dC .bigav { width: 78px; height: 78px; border-radius: 50%; margin: 2px auto 5px; font-size: 42px; }
+  .dC .center { text-align: center; }
+  .dC .stepper { display: inline-flex; background: #EEEEF0; border-radius: 7px; font-size: 13px; }
+  .dC .stepper span { padding: 1px 11px; } .dC .stepper span + span { border-left: 1px solid #D5D5D8; }
+  .dC .segc { display: flex; background: #EEEEF0; border-radius: 8px; padding: 2px; }
+  .dC .segc span { flex: 1; text-align: center; padding: 4px 0; font-size: 9.5px; border-radius: 6px; }
+  .dC .segc span.on { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+  .dC .foot { font-size: 9px; color: #6d6d72; margin: 5px 8px 0; }
+</style>
+
+<h2>RepTender — pick a design direction</h2>
+<p class="subtitle board-intro">Same app, same content, three different looks. Each row shows the <b>Home</b> screen (who's due to eat), a <b>Pet Profile</b>, and the <b>Log a Feeding</b> sheet. Click a row to select it — you can also mix and match (e.g. "B's colors with C's layout").</p>
+
+<!-- ======================= A ======================= -->
+<div class="direction dA" data-choice="a" onclick="toggleSelect(this)">
+  <div class="dir-head"><span class="tag">A</span><h3>Terrarium</h3>
+    <span class="swatches"><i style="background:#F6F1E7"></i><i style="background:#4E7A3A"></i><i style="background:#E9A04B"></i><i style="background:#2E2A24"></i></span></div>
+  <p class="dir-desc">Warm, friendly, light. Sand and moss colors, rounded cards, a big "due today" banner up top. Feels like a cozy hobby app.</p>
+  <div class="phones">
+    <!-- A Home -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="title">My Reptiles</div><div class="muted">3 pets · 1 feeding due today</div>
+      <div class="due"><div class="row"><div class="grow"><div style="font-weight:800;font-size:13px">Noodle is hungry 🍽️</div><div style="opacity:.9">Due today · 1 pinky mouse</div></div><span class="btn">Log</span></div></div>
+      <div class="card"><div class="row"><div class="av" style="background:#FBE3C4">🐍</div><div class="grow"><div class="t-name">Noodle</div><div class="muted">Corn Snake · Amel</div><div class="bar"><i style="width:100%;background:#E9A04B"></i></div></div><span class="pill p-due">Today</span></div></div>
+      <div class="card"><div class="row"><div class="av" style="background:#E6EEDC">🦎</div><div class="grow"><div class="t-name">Ziggy</div><div class="muted">Leopard Gecko · Tangerine</div><div class="bar"><i style="width:40%"></i></div></div><span class="pill p-ok">In 2 days</span></div></div>
+      <div class="card"><div class="row"><div class="av" style="background:#F3E6D0">🐉</div><div class="grow"><div class="t-name">Basil</div><div class="muted">Bearded Dragon</div><div class="bar"><i style="width:100%;background:#C9493A"></i></div></div><span class="pill p-late">1 day late</span></div></div>
+      <div class="card"><div class="row"><div class="av" style="background:#E3E9EF">🐢</div><div class="grow"><div class="t-name">Pebble</div><div class="muted">Russian Tortoise</div><div class="bar"><i style="width:70%"></i></div></div><span class="pill p-ok">Tomorrow</span></div></div>
+    </div><div class="tabs"><span class="on"><b>🦎</b>Pets</span><span><b>📅</b>Schedule</span><span><b>➕</b>Add</span><span><b>⚙️</b>Settings</span></div></div><div class="phone-cap">Home</div></div>
+
+    <!-- A Profile -->
+    <div class="phone-wrap"><div class="phone"><div class="sb" style="position:relative;z-index:4;color:#fff"><span>9:41</span><span>●●● ◔</span></div><div class="scr" style="top:0">
+      <div class="hero"><span class="ico">🐍</span><div style="font-size:11px;line-height:1.2"><div style="font:800 22px ui-rounded,system-ui">Noodle</div>Corn Snake · Amel</div></div>
+      <div style="margin-top:8px"><span class="chip">♀ Female</span><span class="chip">8 months</span><span class="chip">Captive bred</span></div>
+      <div class="card" style="margin-top:4px"><div class="row"><div class="grow"><div class="muted" style="font-size:9px;font-weight:700">NEXT FEEDING</div><div class="t-name">Today · 6:00 PM</div><div class="muted">Every 5 days · 1 pinky mouse</div></div><span class="pill p-due">Due</span></div></div>
+      <div class="grid2"><div class="stat"><span class="muted">Length</span><b>18 in</b></div><div class="stat"><span class="muted">Weight</span><b>42 g</b></div><div class="stat"><span class="muted">Born</span><b>Mar 3, 2026</b></div><div class="stat"><span class="muted">Age</span><b>8 mo</b></div></div>
+      <div class="lbl">Lineage</div>
+      <div class="card"><div class="row"><span class="grow">♂ Sire</span><b>Apollo · Amel</b></div><div class="row" style="margin-top:4px"><span class="grow">♀ Dam</span><b>Juniper · Anery</b></div></div>
+      <div class="lbl">From</div>
+      <div class="card"><b>Scales &amp; Tails Reptiles</b><div class="muted">Bought Apr 12, 2026 · $65</div></div>
+    </div></div><div class="phone-cap">Pet Profile</div></div>
+
+    <!-- A Log -->
+    <div class="phone-wrap"><div class="phone" style="background:#E9E2D4"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr" style="background:#F6F1E7;border-radius:18px 18px 0 0;top:44px">
+      <div class="sheet-grab" style="background:#D6CBB6"></div>
+      <div class="row"><div class="av" style="width:34px;height:34px;border-radius:10px;font-size:18px;background:#FBE3C4">🐍</div><div><div style="font:800 15px ui-rounded,system-ui">Feed Noodle</div><div class="muted">Last fed Nov 3 · 5 days ago</div></div></div>
+      <div class="lbl">When</div>
+      <div class="field"><span>Date</span><b>Today, Nov 8</b></div><div class="field"><span>Time</span><b>6:12 PM</b></div>
+      <div class="lbl">What did it eat?</div>
+      <div><span class="opt on">🐭 Pinky mouse</span><span class="opt">Fuzzy mouse</span><span class="opt">Hopper</span><span class="opt">Rat pup</span><span class="opt">＋ Other</span></div>
+      <div class="lbl">How many?</div>
+      <div class="field" style="align-items:center"><span>Quantity</span><b style="font-size:14px">−&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;＋</b></div>
+      <div><span class="opt on">Ate it</span><span class="opt">Refused</span><span class="opt">Regurgitated</span></div>
+      <div class="save">Save feeding</div>
+      <div class="muted" style="text-align:center;margin-top:6px">Next feeding → Fri, Nov 13</div>
+    </div></div><div class="phone-cap">Log a Feeding</div></div>
+  </div>
+</div>
+
+<!-- ======================= B ======================= -->
+<div class="direction dB" data-choice="b" onclick="toggleSelect(this)">
+  <div class="dir-head"><span class="tag">B</span><h3>Night Vivarium</h3>
+    <span class="swatches"><i style="background:#0D1310"></i><i style="background:#151E19"></i><i style="background:#A6E35A"></i><i style="background:#5AD1C2"></i></span></div>
+  <p class="dir-desc">Dark mode first, glowing lime accent, countdown-focused. Pets shown as rings that "fill up" until the next feeding. Big tap targets, easy to use one-handed by a dim enclosure at night.</p>
+  <div class="phones">
+    <!-- B Home -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="muted" style="font-weight:600">Sunday, Nov 8</div><div class="title">Feeding <span class="acc">queue</span></div>
+      <div class="story">
+        <div><div class="ring" style="background:conic-gradient(#A6E35A 0 100%,#24312A 0)"><div class="av">🐍</div></div><small>Noodle</small></div>
+        <div><div class="ring" style="background:conic-gradient(#A6E35A 0 40%,#24312A 0)"><div class="av">🦎</div></div><small>Ziggy</small></div>
+        <div><div class="ring" style="background:conic-gradient(#FF6B5B 0 100%,#24312A 0)"><div class="av">🐉</div></div><small>Basil</small></div>
+        <div><div class="ring" style="background:conic-gradient(#5AD1C2 0 70%,#24312A 0)"><div class="av">🐢</div></div><small>Pebble</small></div>
+      </div>
+      <div class="q" style="border-color:#4A2A26"><div class="row"><div class="count" style="color:#FF6B5B">−1<small>DAYS</small></div><div class="av sq">🐉</div><div class="grow"><div class="t-name">Basil</div><div class="muted">12 dubia roaches + greens</div></div></div></div>
+      <div class="q" style="border-color:#3B5A22"><div class="row"><div class="count acc">0<small>TODAY</small></div><div class="av sq">🐍</div><div class="grow"><div class="t-name">Noodle</div><div class="muted">1 pinky mouse</div></div></div></div>
+      <div class="q"><div class="row"><div class="count">1<small>DAY</small></div><div class="av sq">🐢</div><div class="grow"><div class="t-name">Pebble</div><div class="muted">Greens & weeds</div></div></div></div>
+      <div class="q"><div class="row"><div class="count">2<small>DAYS</small></div><div class="av sq">🦎</div><div class="grow"><div class="t-name">Ziggy</div><div class="muted">8 crickets</div></div></div></div>
+    </div><div class="tabs"><span class="on"><b>◉</b>Queue</span><span><b>🦎</b>Pets</span><span><b>＋</b>Log</span><span><b>☰</b>More</span></div></div><div class="phone-cap">Home</div></div>
+
+    <!-- B Profile -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="row muted" style="justify-content:space-between"><span>‹ Pets</span><span>Edit</span></div>
+      <div class="bigring"><div class="av">🐍</div></div>
+      <div class="center"><div style="font:800 19px system-ui">Noodle</div><div class="muted">Corn Snake · Amel · ♀ · 8 mo</div><div class="acc" style="font-weight:700;margin-top:3px">Feed today · 6:00 PM</div></div>
+      <div class="seg"><span class="on">Info</span><span>Feedings</span><span>Lineage</span><span>Care</span></div>
+      <div class="tiles"><div class="tile"><span class="muted">Length</span><b>18 in</b></div><div class="tile"><span class="muted">Weight</span><b>42 g</b></div><div class="tile"><span class="muted">Born</span><b>Mar 3 '26</b></div><div class="tile"><span class="muted">From</span><b style="font-size:11px">Scales &amp; Tails</b></div></div>
+      <div class="muted" style="margin-top:10px;font-weight:700;font-size:9px">PARENTS</div>
+      <div class="tree"><div>♂ Apollo<br><span class="muted">Amel</span></div><div>♀ Juniper<br><span class="muted">Anery</span></div></div>
+      <div class="muted" style="margin-top:8px;line-height:1.4">Calm, great eater. Likes to hide in the cork bark on the warm side.</div>
+    </div></div><div class="phone-cap">Pet Profile</div></div>
+
+    <!-- B Log -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="row muted" style="justify-content:space-between"><span>Cancel</span><span>Today · 6:12 PM ✎</span></div>
+      <div class="title" style="margin-top:8px">Feed <span class="acc">Noodle</span></div>
+      <div class="muted">Last meal 5 days ago · 1 pinky mouse</div>
+      <div class="prey">
+        <div class="on"><b>🐭</b>Pinky</div><div><b>🐁</b>Fuzzy</div><div><b>🐀</b>Hopper</div>
+        <div><b>🦗</b>Crickets</div><div><b>🪳</b>Dubia</div><div><b>🥬</b>Greens</div>
+      </div>
+      <div class="counter"><span>−</span><b>1</b><span>＋</span></div>
+      <div class="seg"><span class="on">✓ Ate</span><span>✕ Refused</span><span>↺ Regurg.</span></div>
+      <div class="hold">Hold to log feeding</div>
+      <div class="muted center" style="margin-top:7px">Next feeding → Fri, Nov 13</div>
+    </div></div><div class="phone-cap">Log a Feeding</div></div>
+  </div>
+</div>
+
+<!-- ======================= C ======================= -->
+<div class="direction dC" data-choice="c" onclick="toggleSelect(this)">
+  <div class="dir-head"><span class="tag">C</span><h3>Field Journal</h3>
+    <span class="swatches"><i style="background:#F2F2F7"></i><i style="background:#ffffff"></i><i style="background:#0E9F86"></i><i style="background:#111111"></i></span></div>
+  <p class="dir-desc">Looks like a built-in Apple app: grouped lists, standard controls, teal accent, a week strip showing feeding days. Most familiar, info-dense, and the fastest to build well. Gets dark mode for free.</p>
+  <div class="phones">
+    <!-- C Home -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="row" style="justify-content:flex-end" ><span class="tint" style="font-size:16px">＋</span></div>
+      <div class="title">Today</div>
+      <div class="week">
+        <div class="on">S<b>8</b><i></i></div><div>M<b>9</b><i></i></div><div>T<b>10</b><i></i></div><div>W<b>11</b><i style="visibility:hidden"></i></div><div>T<b>12</b><i></i></div><div>F<b>13</b><i></i></div><div>S<b>14</b><i style="visibility:hidden"></i></div>
+      </div>
+      <div class="sec">Due now</div>
+      <div class="group">
+        <div class="cell"><div class="av" style="background:#FDE3DF">🐉</div><div class="k"><b>Basil</b><div class="v">12 dubia · 1 day late</div></div><span style="color:#E5484D;font-weight:700">●</span></div>
+        <div class="cell"><div class="av" style="background:#FCEBD6">🐍</div><div class="k"><b>Noodle</b><div class="v">1 pinky mouse · 6:00 PM</div></div><span class="tint" style="font-weight:700">Log</span></div>
+      </div>
+      <div class="sec">Upcoming</div>
+      <div class="group">
+        <div class="cell chev"><div class="av" style="background:#E4F1EC">🐢</div><div class="k"><b>Pebble</b><div class="v">Tomorrow</div></div></div>
+        <div class="cell chev"><div class="av" style="background:#EAF1DF">🦎</div><div class="k"><b>Ziggy</b><div class="v">Tue, Nov 10</div></div></div>
+      </div>
+    </div><div class="tabs"><span class="on"><b>☀︎</b>Today</span><span><b>🦎</b>Pets</span><span><b>🕘</b>History</span><span><b>⚙︎</b>Settings</span></div></div><div class="phone-cap">Home</div></div>
+
+    <!-- C Profile -->
+    <div class="phone-wrap"><div class="phone"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr">
+      <div class="nav"><span class="tint">‹ Pets</span><span class="tint">Edit</span></div>
+      <div class="bigav av" style="background:#FCEBD6;width:72px;height:72px;font-size:38px">🐍</div>
+      <div class="center"><div style="font:700 17px system-ui">Noodle</div><div class="v" style="color:#8a8a8e">Corn Snake · Amel</div></div>
+      <div class="sec">Feeding</div>
+      <div class="group">
+        <div class="cell"><span class="k">Next due</span><span class="tint" style="font-weight:600">Today, 6:00 PM</span></div>
+        <div class="cell chev"><span class="k">Last fed</span><span class="v">Nov 3 · 1 pinky</span></div>
+        <div class="cell chev"><span class="k">Schedule</span><span class="v">Every 5 days</span></div>
+      </div>
+      <div class="sec">Details</div>
+      <div class="group">
+        <div class="cell"><span class="k">Sex</span><span class="v">Female</span></div>
+        <div class="cell"><span class="k">Born</span><span class="v">Mar 3, 2026 (8 mo)</span></div>
+        <div class="cell"><span class="k">Length · Weight</span><span class="v">18 in · 42 g</span></div>
+      </div>
+      <div class="sec">Origin &amp; parents</div>
+      <div class="group">
+        <div class="cell chev"><span class="k">Bought from</span><span class="v">Scales &amp; Tails</span></div>
+        <div class="cell"><span class="k">Sire · Dam</span><span class="v">Apollo · Juniper</span></div>
+      </div>
+    </div></div><div class="phone-cap">Pet Profile</div></div>
+
+    <!-- C Log -->
+    <div class="phone-wrap"><div class="phone" style="background:#C9C9CE"><div class="sb"><span>9:41</span><span>●●● ◔</span></div><div class="scr" style="background:#F2F2F7;border-radius:14px 14px 0 0;top:44px">
+      <div class="nav" style="padding-top:12px"><span class="tint">Cancel</span><b>Log Feeding</b><span class="tint" style="font-weight:700">Save</span></div>
+      <div class="group"><div class="cell chev"><div class="av" style="background:#FCEBD6;width:26px;height:26px;font-size:14px">🐍</div><span class="k">Pet</span><span class="v">Noodle</span></div></div>
+      <div class="sec">When</div>
+      <div class="group">
+        <div class="cell"><span class="k">Date</span><span style="background:#EEEEF0;padding:2px 7px;border-radius:6px">Nov 8, 2026</span></div>
+        <div class="cell"><span class="k">Time</span><span style="background:#EEEEF0;padding:2px 7px;border-radius:6px">6:12 PM</span></div>
+      </div>
+      <div class="sec">Meal</div>
+      <div class="group">
+        <div class="cell chev"><span class="k">Food</span><span class="v">Pinky mouse</span></div>
+        <div class="cell"><span class="k">Quantity: 1</span><span class="stepper"><span>−</span><span>+</span></span></div>
+        <div class="cell" style="display:block"><div class="segc"><span class="on">Ate</span><span>Refused</span><span>Regurgitated</span></div></div>
+        <div class="cell"><span class="k v">Notes</span></div>
+      </div>
+      <div class="foot">Next feeding will be due Fri, Nov 13 (every 5 days).</div>
+    </div></div><div class="phone-cap">Log a Feeding</div></div>
+  </div>
+</div>
