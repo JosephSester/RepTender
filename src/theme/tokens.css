@@ -1,0 +1,52 @@
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f6f1e7;
+  --card: #ffffff;
+  --text: #2e2a24;
+  --muted: #8b7e68;
+  --line: #f1eadc;
+  --chip: #efe6d6;
+  --moss: #4e7a3a;
+  --on-moss: #ffffff;
+  --amber: #e9a04b;
+  --amber-deep: #d9783a;
+  --ok-bg: #e3eedb;
+  --ok-text: #3f6b2c;
+  --due-bg: #fce7cf;
+  --due-text: #b85e1f;
+  --late-bg: #f8d9d4;
+  --late-text: #b23a2b;
+  --future: #b3a891;
+  --tab-bg: #fffdf8;
+  --tab-line: #ebe2d1;
+  --shadow: 0 1px 3px rgba(80, 60, 20, 0.08);
+  --hero: radial-gradient(circle at 70% 35%, #f2b66b, #c9773c 70%);
+  --banner: linear-gradient(135deg, #e9a04b, #d9783a);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #171511;
+  --card: #24211b;
+  --text: #f1eadc;
+  --muted: #a99c84;
+  --line: #302b23;
+  --chip: #2e2a22;
+  --moss: #6e9e55;
+  --on-moss: #101a0b;
+  --amber: #e9a04b;
+  --amber-deep: #b9772f;
+  --ok-bg: #26341f;
+  --ok-text: #a9d18e;
+  --due-bg: #3b2c18;
+  --due-text: #f2b66b;
+  --late-bg: #3b201d;
+  --late-text: #f09a8a;
+  --future: #6b6252;
+  --tab-bg: #1d1b16;
+  --tab-line: #2e2a23;
+  --shadow: 0 0 0 1px #2c2820;
+  --hero: radial-gradient(circle at 70% 35%, #b9772f, #5a3416 75%);
+  --banner: linear-gradient(135deg, #b9772f, #94501f);
+}
