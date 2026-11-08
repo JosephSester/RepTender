@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import PetForm from './PetForm';
 import { db, resetDb } from '../../db/db';
-import { createPet, getPet } from '../../db/pets';
+import { createPet, getPet, listActivePets } from '../../db/pets';
 
 function ProfileStub() {
   const { id } = useParams();
@@ -83,5 +83,35 @@ describe('PetForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete pet' }));
     expect(await screen.findByText('home')).toBeInTheDocument();
     expect(await getPet(p.id)).toBeUndefined();
+  });
+
+  it('archives a pet only after confirmation', async () => {
+    const p = await createPet({ name: 'Noodle', species: 'Corn Snake', feedingIntervalDays: 5 });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderForm(`/pets/${p.id}/edit`);
+    await screen.findByDisplayValue('Noodle');
+    await userEvent.click(screen.getByRole('button', { name: 'Archive pet' }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/Archive Noodle\?.*hidden from My Reptiles/));
+    expect((await listActivePets()).map((x) => x.id)).toEqual([p.id]);
+    expect(screen.queryByText('home')).not.toBeInTheDocument();
+
+    confirm.mockReturnValue(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Archive pet' }));
+    expect(await screen.findByText('home')).toBeInTheDocument();
+    expect(await listActivePets()).toEqual([]);
+    expect(await getPet(p.id)).toBeDefined();
+    confirm.mockRestore();
+  });
+
+  it('moves focus to the error alert when Save fails', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    renderForm('/pets/new');
+    await userEvent.click(await screen.findByRole('button', { name: 'Save pet' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveFocus();
+    expect(scroll).toHaveBeenCalled();
+    // @ts-expect-error restore jsdom's lack of scrollIntoView
+    delete Element.prototype.scrollIntoView;
   });
 });

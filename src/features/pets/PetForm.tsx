@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { archivePet, createPet, deletePet, getPet, updatePet } from '../../db/pets';
@@ -28,6 +28,15 @@ export default function PetForm() {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const photoUrl = usePhotoUrl(form?.photoId, 'full');
+  const alertRef = useRef<HTMLDivElement>(null);
+
+  // The alert sits near the top of a long form but Save is at the bottom: bring it into view.
+  useEffect(() => {
+    if (!error) return;
+    const el = alertRef.current;
+    el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); // missing in jsdom
+    el?.focus({ preventScroll: true });
+  }, [error]);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +84,7 @@ export default function PetForm() {
 
   async function onArchive() {
     if (!id) return;
+    if (!window.confirm(`Archive ${form!.name}? Archived pets are hidden from My Reptiles (their history is kept).`)) return;
     await archivePet(id);
     navigate('/', { replace: true });
   }
@@ -101,7 +111,7 @@ export default function PetForm() {
         <input type="file" accept="image/*" aria-label="Choose photo" hidden onChange={(e) => onPhoto(e.target.files?.[0])} />
       </label>
 
-      {error && <div role="alert" className="form-error">{error}</div>}
+      {error && <div role="alert" tabIndex={-1} ref={alertRef} className="form-error">{error}</div>}
 
       <div className="label">Basics</div>
       <Field label="Name"><input {...text('name')} autoComplete="off" /></Field>
