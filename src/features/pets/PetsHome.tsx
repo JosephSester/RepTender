@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../ui/Card';
 import { Pill, type PillTone } from '../../ui/Pill';
 import { PetAvatar } from '../../ui/PetAvatar';
 import { useNow } from '../../ui/useNow';
+import LogFeedingSheet from '../feedings/LogFeedingSheet';
 import { usePetSummaries, type PetSummary } from './usePetSummaries';
 
 export const TONE: Record<PetSummary['status'], PillTone> = { late: 'late', today: 'due', soon: 'ok' };
@@ -17,6 +19,7 @@ export function bannerLine(s: PetSummary): string {
 export default function PetsHome({ now: fixedNow }: { now?: Date }) {
   const now = useNow(fixedNow);
   const summaries = usePetSummaries(now);
+  const [logFor, setLogFor] = useState<PetSummary | null>(null);
   if (!summaries) return null;
 
   const today = summaries.filter((s) => s.status === 'today').length;
@@ -40,6 +43,7 @@ export default function PetsHome({ now: fixedNow }: { now?: Date }) {
               <div className="rounded" style={{ fontSize: 17 }}>{`${urgent.pet.name} is hungry`}</div>
               <div style={{ opacity: 0.9 }}>{bannerLine(urgent)}</div>
             </div>
+            <button type="button" className="btn" onClick={() => setLogFor(urgent)}>Log</button>
           </div>
         </div>
       )}
@@ -76,6 +80,17 @@ export default function PetsHome({ now: fixedNow }: { now?: Date }) {
         <Link className="btn-ghost" style={{ textAlign: 'center', textDecoration: 'none' }} to="/pets/new">
           + Add reptile
         </Link>
+      )}
+
+      {logFor && (
+        <LogFeedingSheet
+          open
+          pet={logFor.pet}
+          lastMealAt={logFor.meal?.at}
+          currentDue={logFor.due}
+          now={now}
+          onClose={() => setLogFor(null)}
+        />
       )}
     </>
   );

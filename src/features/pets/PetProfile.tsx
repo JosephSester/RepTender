@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { parseISO } from 'date-fns';
 import { Card } from '../../ui/Card';
@@ -8,11 +8,12 @@ import { speciesEmoji } from '../../ui/PetAvatar';
 import { usePhotoUrl } from '../../ui/usePhotoUrl';
 import { useNow } from '../../ui/useNow';
 import { buildMonthMarks } from '../../domain/calendar';
-import { dueStatus, nextFeedingDue, statusLabel } from '../../domain/feeding';
+import { dueStatus, lastMeal, nextFeedingDue, statusLabel } from '../../domain/feeding';
 import { formatAge } from '../../domain/age';
 import type { ParentRef, Pet } from '../../domain/types';
 import { usePetDetail } from './usePetDetail';
 import { formatDateKey, formatDue } from './format';
+import LogFeedingSheet from '../feedings/LogFeedingSheet';
 import { TONE } from './PetsHome';
 import './profile.css';
 
@@ -21,11 +22,12 @@ const ORIGIN = { captive_bred: 'Captive bred', wild_caught: 'Wild caught', unkno
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const parentText = (p?: ParentRef) => [p?.name, p?.morph].filter(Boolean).join(' · ');
 
-export default function PetProfile({ now: fixedNow, children }: { now?: Date; children?: ReactNode }) {
+export default function PetProfile({ now: fixedNow }: { now?: Date }) {
   const { id } = useParams();
   const now = useNow(fixedNow);
   const detail = usePetDetail(id);
   const [month, setMonth] = useState(() => ({ year: now.getFullYear(), month: now.getMonth() }));
+  const [logOpen, setLogOpen] = useState(false);
   const heroUrl = usePhotoUrl(detail?.pet?.photoId, 'full');
 
   if (!detail) return null;
@@ -90,7 +92,9 @@ export default function PetProfile({ now: fixedNow, children }: { now?: Date; ch
           </div>
           <Pill tone={TONE[status]}>{statusLabel(due, now)}</Pill>
         </div>
-        {children}
+        <button type="button" className="btn-primary" style={{ marginTop: 10 }} onClick={() => setLogOpen(true)}>
+          🍽️ Log feeding
+        </button>
       </Card>
 
       <Card>
@@ -128,6 +132,15 @@ export default function PetProfile({ now: fixedNow, children }: { now?: Date; ch
           <Card>{pet.description}</Card>
         </>
       )}
+
+      <LogFeedingSheet
+        open={logOpen}
+        pet={pet}
+        lastMealAt={lastMeal(feedings)?.at}
+        currentDue={due}
+        now={now}
+        onClose={() => setLogOpen(false)}
+      />
     </div>
   );
 }

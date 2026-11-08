@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import PetsHome from './PetsHome';
 import { resetDb } from '../../db/db';
@@ -42,5 +43,13 @@ describe('PetsHome', () => {
     expect(within(cards[1]!).getByText('Today')).toHaveClass('pill-due');
     expect(within(cards[2]!).getByText('In 2 days')).toHaveClass('pill-ok');
     expect(cards[1]).toHaveAttribute('href', `/pets/${noodle.id}`);
+  });
+
+  it('logs a feeding from the hungry banner', async () => {
+    await addPet('Noodle', 'Corn Snake', 5, 3);
+    renderHome();
+    await userEvent.click(await screen.findByRole('button', { name: 'Log' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Feed Noodle' })).getByRole('button', { name: 'Save feeding' }));
+    expect(await screen.findByText('In 5 days')).toBeInTheDocument();
   });
 });
