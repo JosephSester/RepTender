@@ -1,0 +1,120 @@
+import Dexie from 'dexie';
+import { parseISO } from 'date-fns';
+import type { Feeding, FeedingOutcome, Pet, Regurgitation } from '../domain/types';
+import { pushBackOverride } from '../domain/feeding';
+import { db } from './db';
+import { newId, nowIso, ValidationError } from './ids';
+
+export interface LogFeedingInput {
+  petId: string;
+  at: string;
+  foodItem: string;
+  quantity: number;
+  outcome: FeedingOutcome;
+  notes?: string;
+  /** Set when the Log a Feeding sheet's "Regurgitated" button was chosen (spec §5.3). */
+  regurgitated?: { foundAt: string; pushBackDays: number | null; notes?: string };
+}
+
+export interface LogRegurgitationInput {
+  petId: string;
+  feedingId: string;
+  at: string;
+  pushBackDays: number | null;
+  notes?: string;
+}
+
+const clean = (s?: string) => s?.trim() || undefined;
+
+function validateQuantity(q: number): void {
+  if (!Number.isInteger(q) || q < 1) throw new ValidationError('Quantity must be at least 1');
+}
+
+async function addRegurgitation(
+  pet: Pet,
+  r: { feedingId: string; at: string; pushBackDays: number | null; notes?: string },
+): Promise<Regurgitation> {
+  if (r.pushBackDays !== null && !(Number.isInteger(r.pushBackDays) && r.pushBackDays >= 1)) {
+    throw new ValidationError('Push back must be at least 1 day');
+  }
+  const ts = nowIso();
+  const rec: Regurgitation = {
+    id: newId(), petId: pet.id, feedingId: r.feedingId, at: r.at,
+    pushBackDays: r.pushBackDays ?? undefined, notes: clean(r.notes), createdAt: ts, updatedAt: ts,
+  };
+  await db.regurgitations.add(rec);
+  if (r.pushBackDays !== null) {
+    await db.pets.update(pet.id, {
+      nextFeedingOverride: pushBackOverride(parseISO(r.at), pet, r.pushBackDays),
+      updatedAt: ts,
+    });
+  }
+  return rec;
+}
+
+export async function logFeeding(input: LogFeedingInput): Promise<Feeding> {
+  if (!input.foodItem.trim()) throw new ValidationError('Pick what it ate');
+  validateQuantity(input.quantity);
+  if (input.regurgitated && input.outcome !== 'ate') {
+    throw new ValidationError('Only a meal it ate can be regurgitated');
+  }
+  return db.transaction('rw', [db.pets, db.feedings, db.regurgitations], async () => {
+    const pet = await db.pets.get(input.petId);
+    if (!pet) throw new Error(`Pet ${input.petId} not found`);
+    const ts = nowIso();
+    const feeding: Feeding = {
+      id: newId(), petId: pet.id, at: input.at, foodItem: input.foodItem.trim(),
+      quantity: input.quantity, outcome: input.outcome, notes: clean(input.notes),
+      createdAt: ts, updatedAt: ts,
+    };
+    await db.feedings.add(feeding);
+    if (input.outcome === 'ate') {
+      await db.pets.update(pet.id, { nextFeedingOverride: undefined, updatedAt: ts }); // spec §7 rule 4
+    }
+    if (input.regurgitated) {
+      await addRegurgitation(pet, {
+        feedingId: feeding.id,
+        at: input.regurgitated.foundAt,
+        pushBackDays: input.regurgitated.pushBackDays,
+        notes: input.regurgitated.notes,
+      });
+    }
+    return feeding;
+  });
+}
+
+export async function logRegurgitation(input: LogRegurgitationInput): Promise<Regurgitation> {
+  return db.transaction('rw', [db.pets, db.feedings, db.regurgitations], async () => {
+    const pet = await db.pets.get(input.petId);
+    if (!pet) throw new Error(`Pet ${input.petId} not found`);
+    const meal = await db.feedings.get(input.feedingId);
+    if (!meal || meal.petId !== pet.id || meal.outcome !== 'ate') {
+      throw new ValidationError('Pick the meal that came back up');
+    }
+    return addRegurgitation(pet, input);
+  });
+}
+
+export async function updateFeeding(
+  id: string,
+  patch: Partial<Pick<Feeding, 'at' | 'foodItem' | 'quantity' | 'outcome' | 'notes'>>,
+): Promise<void> {
+  if (patch.quantity !== undefined) validateQuantity(patch.quantity);
+  if (patch.foodItem !== undefined && !patch.foodItem.trim()) throw new ValidationError('Pick what it ate');
+  const next: Partial<Feeding> = { ...patch, updatedAt: nowIso() };
+  if ('notes' in patch) next.notes = clean(patch.notes); // an empty note removes it
+  await db.feedings.update(id, next);
+}
+
+export async function deleteFeeding(id: string): Promise<void> {
+  await db.transaction('rw', [db.feedings, db.regurgitations], async () => {
+    await db.regurgitations.where('feedingId').equals(id).delete();
+    await db.feedings.delete(id);
+  });
+}
+
+export const listFeedings = (petId: string): Promise<Feeding[]> =>
+  db.feedings.where('[petId+at]').between([petId, Dexie.minKey], [petId, Dexie.maxKey]).toArray();
+
+export const listRegurgitations = (petId: string): Promise<Regurgitation[]> =>
+  db.regurgitations.where('petId').equals(petId).toArray();
