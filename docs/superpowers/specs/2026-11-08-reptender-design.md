@@ -111,7 +111,11 @@ Boundaries: `domain/` depends on nothing. `db/` depends on `domain/` types. `fea
 - Date and time, defaulting to now.
 - Food item as chips: the pet's usual food first, then common items, then "+ Other".
 - A quantity stepper, defaulting to the pet's usual quantity.
-- Outcome: **Ate it** / **Refused**. Regurgitation is logged separately against a meal; see §5.5.
+- Outcome: **Ate it** / **Refused** / **Regurgitated**.
+  - **Regurgitated** is for a meal that came back up soon after feeding, logged in one go.
+  - Saving creates the Feeding (`outcome = ate`) plus a linked Regurgitation record. "Found at" defaults to the feeding time and can be changed.
+  - When Regurgitated is selected, the sheet also shows the **"Push next feeding back?"** switch from §5.5.
+  - A regurgitation discovered later is logged from the Regurgitation sheet (§5.5) against an earlier meal.
 - Notes.
 - Footer: "Next feeding → <date>", worked out live.
 - After saving, a toast with a **📅 Remind me** button (§8).
@@ -120,6 +124,7 @@ Boundaries: `domain/` depends on nothing. `db/` depends on `domain/` types. `fea
 A large month calendar with food icons on the days it ate, and a list of entries below. Tapping a day shows that day's entries. Each entry can be edited or deleted.
 
 ### 5.5 Regurgitation (sheet)
+Opened from Quick log → Regurg., or from the Add tab. Use it when the regurgitation is found after the feeding was already logged. The Log a Feeding sheet's **Regurgitated** button (§5.3) covers the case where both are logged at once.
 - Pick which meal came back up. The last 5 eaten meals are listed, with the most recent selected.
 - When it was found (date and time), and notes.
 - A **"Push next feeding back?"** switch, on by default, set to 10 days and adjustable.
@@ -238,6 +243,8 @@ Indexes: `[petId+at]` on the time-based log tables, `[petId+date]` on the date-b
    - With no meals logged at all, the pet is "due now", and its card shows "No feedings yet".
 3. **A refusal does not reset the clock.** The pet stays due, then late, until a meal with `outcome = ate` is logged.
 4. **Regurgitation push-back:** when it is enabled, `nextFeedingOverride` = regurgitation date + `pushBackDays` (default 10). The next "ate" feeding clears the override.
+   - This works the same whether the regurgitation comes from the Log a Feeding sheet's **Regurgitated** button or from the Regurgitation sheet.
+   - A regurgitated meal still counts as the last meal, so with push-back off, next due = that meal + interval.
 5. **Status:**
    - `late`: now is past the due day (the day after the due date or later).
    - `today`: the due date is today.
@@ -302,7 +309,7 @@ A web app cannot schedule local iPhone notifications, and true web push needs a 
 
 - **Unit tests (Vitest), `src/domain/`:** the next-due rules (with and without the override, the refusal rule, no meals yet), status by calendar day (including time-zone and DST edges), calendar marks for a month, age formatting, shed prediction, care task due dates, unit conversions, the "days after meal" count and `.ics` generation.
 - **Repository tests (Vitest + fake-indexeddb):** CRUD per table, cascading delete of a pet's logs, schema upgrade, export → import round trip (including photos), and rejection of invalid backups.
-- **Component and flow tests (React Testing Library):** add a pet → it appears on Home; log a feeding → the status and next due update; a refusal keeps it due; regurgitation with push-back moves next due; theme switch; import replaces data.
+- **Component and flow tests (React Testing Library):** add a pet → it appears on Home; log a feeding → the status and next due update; a refusal keeps it due; logging with **Regurgitated** creates both records and the push-back moves next due; a later regurgitation from the Regurgitation sheet does the same; theme switch; import replaces data.
 - **Manual iPhone checklist (`docs/iphone-checklist.md`, written during implementation), run before each release:** Add to Home Screen; full-screen launch and icon; offline launch; camera and photo library; Remind me → Calendar; badge; export to Files; import; update prompt; light, dark and auto.
 
 ## 13. Deployment
