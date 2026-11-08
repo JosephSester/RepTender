@@ -31,4 +31,7 @@ describe('formatDay', () => {
     expect(formatDay(new Date(2026, 10, 13, 18), now)).toBe('Fri, Nov 13');
     expect(formatDay(null, now)).toBe('—');
   });
+  it('shows a dash for an invalid date instead of throwing', () => {
+    expect(formatDay(new Date(NaN), now)).toBe('—');
+  });
 });

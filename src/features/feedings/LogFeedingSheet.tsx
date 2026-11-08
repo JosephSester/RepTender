@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
 import type { Pet } from '../../domain/types';
 import { atTime, dateKey, parseDateKey } from '../../domain/dates';
 import { DEFAULT_PUSH_BACK_DAYS } from '../../domain/feeding';
@@ -64,6 +64,7 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
 
   const at = atTime(parseDateKey(date), time);
   const foundAt = atTime(parseDateKey(foundDate), foundTime);
+  const datesValid = isValid(at) && (outcome !== 'regurgitated' || isValid(foundAt));
   const preview = previewNextDue({
     pet, outcome, at, foundAt, pushBack, pushBackDays: Number(pushBackDays), currentDue,
   });
@@ -74,6 +75,8 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!datesValid) return;
+    setError(undefined);
     setSaving(true);
     try {
       const food = otherOpen ? (await addFoodItem(otherFood)).name : foodItem;
@@ -168,7 +171,7 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
           <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </label>
 
-        <button type="submit" className="btn-primary" disabled={saving}>Save feeding</button>
+        <button type="submit" className="btn-primary" disabled={saving || !datesValid}>Save feeding</button>
         <div className="muted" style={{ textAlign: 'center', marginTop: 8 }}>
           {`Next feeding → ${formatDay(preview, now)}`}
         </div>

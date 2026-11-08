@@ -88,4 +88,22 @@ describe('LogFeedingSheet', () => {
     await vi.waitFor(async () => expect((await listFeedings(pet.id)).at(-1)!.foodItem).toBe('Black soldier fly larvae'));
     expect(await db.foodItems.where('name').equals('Black soldier fly larvae').count()).toBe(1);
   });
+
+  it('survives a cleared Date input and blocks saving', async () => {
+    open();
+    await userEvent.clear(await screen.findByLabelText('Date'));
+    expect(screen.getByRole('dialog', { name: 'Feed Noodle' })).toBeInTheDocument();
+    expect(screen.getByText('Next feeding → —')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save feeding' })).toBeDisabled();
+  });
+
+  it('a cleared Found date blocks saving only for regurgitation', async () => {
+    open();
+    await userEvent.click(await screen.findByRole('radio', { name: 'Regurgitated' }));
+    await userEvent.clear(screen.getByLabelText('Found date'));
+    expect(screen.getByText('Next feeding → —')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save feeding' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('radio', { name: 'Ate it' }));
+    expect(screen.getByRole('button', { name: 'Save feeding' })).toBeEnabled();
+  });
 });
