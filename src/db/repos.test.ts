@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, resetDb } from './db';
 import { archivePet, createPet, deletePet, getPet, listActivePets, updatePet } from './pets';
 import {
-  deleteFeeding, listFeedings, listRegurgitations, logFeeding, logRegurgitation,
+  deleteFeeding, listFeedings, listRegurgitations, logFeeding, logRegurgitation, updateFeeding,
 } from './feedings';
 import { getSettings, updateSettings } from './settings';
 import { addFoodItem, listFoodItems } from './foodItems';
@@ -148,6 +148,45 @@ describe('feedings', () => {
     await deleteFeeding(meal.id);
     expect(await db.feedings.count()).toBe(0);
     expect(await db.regurgitations.count()).toBe(0);
+  });
+
+  it('deleting a regurgitated meal clears the push-back override it created', async () => {
+    const p = await noodle();
+    const meal = await logFeeding({
+      petId: p.id, at: at(3), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+      regurgitated: { foundAt: at(4, 7, 30), pushBackDays: 10 },
+    });
+    expect((await getPet(p.id))!.nextFeedingOverride).toBe(pushBackOverride(new Date(at(4, 7, 30)), p, 10));
+    await deleteFeeding(meal.id);
+    expect((await getPet(p.id))!.nextFeedingOverride).toBeUndefined();
+  });
+
+  it('deleting a regurgitated meal leaves an unrelated override alone', async () => {
+    const p = await noodle();
+    const older = await logFeeding({
+      petId: p.id, at: at(3), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+      regurgitated: { foundAt: at(4, 7, 30), pushBackDays: 10 },
+    });
+    await logFeeding({
+      petId: p.id, at: at(8), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+      regurgitated: { foundAt: at(9, 7, 30), pushBackDays: 14 },
+    });
+    const latest = pushBackOverride(new Date(at(9, 7, 30)), p, 14);
+    expect((await getPet(p.id))!.nextFeedingOverride).toBe(latest);
+    await deleteFeeding(older.id);
+    expect((await getPet(p.id))!.nextFeedingOverride).toBe(latest);
+  });
+
+  it('editing a regurgitated meal to refused removes its regurgitation and push-back', async () => {
+    const p = await noodle();
+    const meal = await logFeeding({
+      petId: p.id, at: at(3), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+      regurgitated: { foundAt: at(4, 7, 30), pushBackDays: 10 },
+    });
+    await updateFeeding(meal.id, { outcome: 'refused' });
+    expect((await db.feedings.get(meal.id))!.outcome).toBe('refused');
+    expect(await db.regurgitations.count()).toBe(0);
+    expect((await getPet(p.id))!.nextFeedingOverride).toBeUndefined();
   });
 });
 

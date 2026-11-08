@@ -95,6 +95,24 @@ export async function logRegurgitation(input: LogRegurgitationInput): Promise<Re
   });
 }
 
+/**
+ * Removes a meal's regurgitations and, per spec §7 rule 4, undoes the push-back override
+ * they created (only if the pet's current override is still exactly that push-back).
+ * Must run inside a transaction that includes db.pets and db.regurgitations.
+ */
+async function removeRegurgitations(feedingId: string): Promise<void> {
+  const linked = await db.regurgitations.where('feedingId').equals(feedingId).toArray();
+  if (linked.length === 0) return;
+  const pet = await db.pets.get(linked[0]!.petId);
+  if (pet?.nextFeedingOverride) {
+    const undone = linked.some(
+      (r) => r.pushBackDays && pet.nextFeedingOverride === pushBackOverride(parseISO(r.at), pet, r.pushBackDays),
+    );
+    if (undone) await db.pets.update(pet.id, { nextFeedingOverride: undefined, updatedAt: nowIso() });
+  }
+  await db.regurgitations.where('feedingId').equals(feedingId).delete();
+}
+
 export async function updateFeeding(
   id: string,
   patch: Partial<Pick<Feeding, 'at' | 'foodItem' | 'quantity' | 'outcome' | 'notes'>>,
@@ -103,12 +121,15 @@ export async function updateFeeding(
   if (patch.foodItem !== undefined && !patch.foodItem.trim()) throw new ValidationError('Pick what it ate');
   const next: Partial<Feeding> = { ...patch, updatedAt: nowIso() };
   if ('notes' in patch) next.notes = clean(patch.notes); // an empty note removes it
-  await db.feedings.update(id, next);
+  await db.transaction('rw', [db.pets, db.feedings, db.regurgitations], async () => {
+    if (patch.outcome === 'refused') await removeRegurgitations(id); // a refused meal can't be regurgitated
+    await db.feedings.update(id, next);
+  });
 }
 
 export async function deleteFeeding(id: string): Promise<void> {
-  await db.transaction('rw', [db.feedings, db.regurgitations], async () => {
-    await db.regurgitations.where('feedingId').equals(id).delete();
+  await db.transaction('rw', [db.pets, db.feedings, db.regurgitations], async () => {
+    await removeRegurgitations(id);
     await db.feedings.delete(id);
   });
 }
