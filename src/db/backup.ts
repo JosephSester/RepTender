@@ -1,7 +1,7 @@
 import { isValid, parseISO } from 'date-fns';
 import type { Pet, Photo } from '../domain/types';
 import { dateKey } from '../domain/dates';
-import { blobToDataUrl, dataUrlToBlob } from '../lib/base64';
+import { blobToDataUrl, dataUrlToBlob, IMPORTABLE_IMAGE_TYPE } from '../lib/base64';
 import { db, DEFAULT_SETTINGS, SCHEMA_VERSION } from './db';
 import { updateSettings } from './settings';
 import { BackupError, TABLE_NAMES, validateTables, type BackupTables, type TableName } from './backupSchema';
@@ -74,25 +74,55 @@ export function pruneOrphans(t: BackupTables): BackupTables {
   };
 }
 
-/** Import accepts only image/* data URLs, so a photo blob stored without an image type is labelled as a JPEG. */
-const imageBlob = (b: Blob): Blob => (b.type.startsWith('image/') ? b : new Blob([b], { type: 'image/jpeg' }));
+/** Import accepts only jpeg/png/webp/gif data URLs, so a photo blob stored with any other type is labelled as a JPEG. */
+const imageBlob = (b: Blob): Blob => (IMPORTABLE_IMAGE_TYPE.test(b.type) ? b : new Blob([b], { type: 'image/jpeg' }));
 
-export async function createBackup(now: Date = new Date()): Promise<BackupJson> {
+async function encodePhoto(p: Photo): Promise<PhotoJson> {
+  return { ...p, blob: await blobToDataUrl(imageBlob(p.blob)), thumbBlob: await blobToDataUrl(imageBlob(p.thumbBlob)) };
+}
+
+export interface BackupResult {
+  backup: BackupJson;
+  /** Photos whose bytes couldn't be read; they (and links to them) are left out of the backup. */
+  skippedPhotos: number;
+}
+
+/**
+ * Builds the backup. A photo that can't be read (WebKit can lose stored Blobs) is skipped rather than
+ * failing the whole backup; links to it are removed from the exported copy only, never from the database.
+ */
+export async function buildBackup(now: Date = new Date()): Promise<BackupResult> {
   const tables = pruneOrphans(await readAllTables());
   // Encoding is async (Blob reads), so it runs after the read transaction has finished.
   // One photo at a time keeps peak memory low on a phone (each photo is a Blob, a byte copy and a string).
-  const photos: PhotoJson[] = [];
+  const encoded = new Map<string, PhotoJson>();
   for (const p of tables.photos) {
-    photos.push({ ...p, blob: await blobToDataUrl(imageBlob(p.blob)), thumbBlob: await blobToDataUrl(imageBlob(p.thumbBlob)) });
+    try {
+      encoded.set(p.id, await encodePhoto(p));
+    } catch {
+      // unreadable: skipped below
+    }
   }
-  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now.toISOString(), tables: { ...tables, photos } };
+  const readable = tables.photos.filter((p) => encoded.has(p.id));
+  const skippedPhotos = tables.photos.length - readable.length;
+  // Re-prune so pet.photoId / vetVisit.photoIds pointing at a skipped photo don't make the file fail its own import.
+  const kept = skippedPhotos > 0 ? pruneOrphans({ ...tables, photos: readable }) : tables;
+  const photos = readable.map((p) => encoded.get(p.id)!);
+  return {
+    backup: { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now.toISOString(), tables: { ...kept, photos } },
+    skippedPhotos,
+  };
+}
+
+export async function createBackup(now: Date = new Date()): Promise<BackupJson> {
+  return (await buildBackup(now)).backup;
 }
 
 export const backupFileName = (now: Date): string => `reptender-backup-${dateKey(now)}.json`;
 
-export async function createBackupFile(now: Date = new Date()): Promise<File> {
-  const backup = await createBackup(now);
-  return new File([JSON.stringify(backup)], backupFileName(now), { type: 'application/json' });
+export async function createBackupFile(now: Date = new Date()): Promise<{ file: File; skippedPhotos: number }> {
+  const { backup, skippedPhotos } = await buildBackup(now);
+  return { file: new File([JSON.stringify(backup)], backupFileName(now), { type: 'application/json' }), skippedPhotos };
 }
 
 /** Spec §9: record lastBackupAt once the file has been handed to the share sheet or downloaded. */

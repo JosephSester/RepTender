@@ -32,3 +32,9 @@ it('only accepts image types', () => {
   expect(dataUrlToBlob('data:application/octet-stream;base64,aGk=')).toBeNull();
   expect(dataUrlToBlob('data:image/png;base64,aGk=')).not.toBeNull();
 });
+
+it('only accepts jpeg, png, webp and gif (no SVG)', () => {
+  for (const type of ['jpeg', 'png', 'webp', 'gif']) expect(dataUrlToBlob(`data:image/${type};base64,aGk=`)?.type).toBe(`image/${type}`);
+  expect(dataUrlToBlob('data:image/svg+xml;base64,aGk=')).toBeNull();
+  expect(dataUrlToBlob('data:image/x-icon;base64,aGk=')).toBeNull();
+});

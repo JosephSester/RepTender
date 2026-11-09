@@ -14,6 +14,7 @@ export function ExportBackupButton() {
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string>();
   const [error, setError] = useState<string>();
+  const [skipped, setSkipped] = useState(0); // photos that couldn't be read and were left out of the file
   const busy = useRef(false); // double-tap guard (state updates land a render later)
 
   const prepare = async () => {
@@ -22,8 +23,11 @@ export function ExportBackupButton() {
     setPreparing(true);
     setError(undefined);
     setNote(undefined);
+    setSkipped(0);
     try {
-      setFile(await createBackupFile());
+      const made = await createBackupFile();
+      setSkipped(made.skippedPhotos);
+      setFile(made.file);
     } catch {
       setError("Couldn't make the backup. Please try again.");
     } finally {
@@ -74,6 +78,14 @@ export function ExportBackupButton() {
         <button type="button" className="btn-ghost" disabled={preparing} onClick={prepare}>
           {preparing ? 'Preparing backup…' : 'Export backup'}
         </button>
+      )}
+      {skipped > 0 && (
+        <p role="alert" className="setting-note warn">
+          {skipped === 1
+            ? "1 photo couldn't be read and was left out."
+            : `${skipped} photos couldn't be read and were left out.`}{' '}
+          Everything else is in the backup.
+        </p>
       )}
       {note && <p role="status" className="muted setting-note">{note}</p>}
     </div>

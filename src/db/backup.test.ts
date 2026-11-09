@@ -10,7 +10,7 @@ import { completeCareTask, createCareTask } from './care';
 import { createVetVisit } from './vetVisits';
 import { getSettings } from './settings';
 import {
-  backupFileName, createBackup, createBackupFile, markBackedUp, parseBackup, readAllTables, restoreBackup,
+  backupFileName, buildBackup, createBackup, createBackupFile, markBackedUp, parseBackup, readAllTables, restoreBackup,
   summarizeBackup, summaryText, type BackupJson,
 } from './backup';
 import { BackupError, TABLE_NAMES } from './backupSchema';
@@ -63,7 +63,8 @@ describe('export (spec §9)', () => {
 
   it('makes a JSON file and records the backup date', async () => {
     await seed();
-    const file = await createBackupFile(now);
+    const { file, skippedPhotos } = await createBackupFile(now);
+    expect(skippedPhotos).toBe(0);
     expect(file.name).toBe('reptender-backup-2026-11-08.json');
     expect(file.type).toBe('application/json');
     expect(JSON.parse(await file.text())).toMatchObject({ app: 'RepTender', schemaVersion: SCHEMA_VERSION });
@@ -84,6 +85,69 @@ describe('export (spec §9)', () => {
     const pet = backup.tables.pets.find((p) => p.id === noodle.id)!;
     expect(pet.photoId).toBeUndefined();
     expect(pet.sire).toEqual({ name: 'Apollo' });
+    expect(() => parseBackup(JSON.stringify(backup))).not.toThrow();
+  });
+});
+
+describe('export with unreadable photos', () => {
+  /** Makes reads of any stored blob of exactly this size fail, like a WebKit Blob that went missing. */
+  function breakBlobsOfSize(size: number) {
+    const read = NodeBlob.prototype.arrayBuffer;
+    return vi.spyOn(NodeBlob.prototype, 'arrayBuffer').mockImplementation(function (this: Blob) {
+      return this.size === size ? Promise.reject(new DOMException('gone', 'NotReadableError')) : read.call(this);
+    });
+  }
+
+  it('skips an unreadable photo, drops the links to it, and still exports a file that imports', async () => {
+    const { noodle, photoId } = await seed(); // pet photo is 7 bytes, the vet photo 3 bytes
+    const vet = (await db.vetVisits.toArray())[0]!;
+    breakBlobsOfSize(JPEG.length);
+    const { backup, skippedPhotos } = await buildBackup(now);
+
+    expect(skippedPhotos).toBe(1);
+    expect(backup.tables.photos.map((p) => p.id)).toEqual(vet.photoIds);
+    expect(backup.tables.pets.find((p) => p.id === noodle.id)!.photoId).toBeUndefined();
+    expect(backup.tables.feedings).toHaveLength(1); // everything else is still in
+    const parsed = parseBackup(JSON.stringify(backup));
+    expect(parsed.tables.photos).toHaveLength(1);
+
+    // The database itself is untouched.
+    expect((await getPet(noodle.id))!.photoId).toBe(photoId);
+    expect(await getPhoto(photoId)).toBeDefined();
+  });
+
+  it('also drops the vet visit link when a vet photo is unreadable', async () => {
+    const { noodle, photoId } = await seed();
+    breakBlobsOfSize(3);
+    const { backup, skippedPhotos } = await buildBackup(now);
+    expect(skippedPhotos).toBe(1);
+    expect(backup.tables.photos.map((p) => p.id)).toEqual([photoId]);
+    expect(backup.tables.vetVisits[0]!.photoIds).toEqual([]);
+    expect(backup.tables.pets.find((p) => p.id === noodle.id)!.photoId).toBe(photoId);
+    expect(() => parseBackup(JSON.stringify(backup))).not.toThrow();
+    expect((await db.vetVisits.toArray())[0]!.photoIds).toHaveLength(1); // not changed in the database
+  });
+
+  it('skips a photo row with no blob at all, and reports the count from createBackupFile', async () => {
+    const { photoId } = await seed();
+    await db.photos.update(photoId, { blob: undefined as unknown as Blob });
+    const { file, skippedPhotos } = await createBackupFile(now);
+    expect(skippedPhotos).toBe(1);
+    const text = await file.text();
+    expect(() => parseBackup(text)).not.toThrow();
+  });
+
+  it('labels a photo stored with a non-importable type as a JPEG', async () => {
+    const photoId = await savePhoto({
+      blob: new Blob([new Uint8Array([1, 2])], { type: 'image/svg+xml' }),
+      thumbBlob: new Blob([new Uint8Array([3])], { type: '' }),
+      width: 1, height: 1,
+    });
+    const { backup, skippedPhotos } = await buildBackup(now);
+    expect(skippedPhotos).toBe(0);
+    const stored = backup.tables.photos.find((p) => p.id === photoId)!;
+    expect(stored.blob.startsWith('data:image/jpeg;base64,')).toBe(true);
+    expect(stored.thumbBlob.startsWith('data:image/jpeg;base64,')).toBe(true);
     expect(() => parseBackup(JSON.stringify(backup))).not.toThrow();
   });
 });

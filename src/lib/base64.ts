@@ -8,8 +8,9 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type || 'application/octet-stream'};base64,${btoa(binary)}`;
 }
 
-// Only image types: a backup is not a way to smuggle HTML or script into the app's origin.
-const DATA_URL = /^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/]*={0,2})$/;
+// Only raster image types (no SVG, HTML or script): a backup is not a way to smuggle active content into the app's origin.
+export const IMPORTABLE_IMAGE_TYPE = /^image\/(?:jpeg|png|webp|gif)$/;
+const DATA_URL =/^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/]*={0,2})$/;
 
 /** The reverse of blobToDataUrl, or null for anything that isn't a valid base64 image data URL. */
 export function dataUrlToBlob(url: string): Blob | null {
