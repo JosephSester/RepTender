@@ -1,0 +1,25 @@
+/* ---------- Settings (Plan 3) ---------- */
+.setting-row {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.setting-row > span {
+  font-weight: 700;
+}
+.setting-note {
+  margin: 8px 2px 0;
+  font-size: 13px;
+}
+.warn {
+  color: var(--due-text);
+  font-weight: 700;
+}
+.data-actions {
+  display: grid;
+  gap: 8px;
+}
+.data-actions .muted {
+  font-size: 13px;
+  margin: -2px 2px 4px;
+}

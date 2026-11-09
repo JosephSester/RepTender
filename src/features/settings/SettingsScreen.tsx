@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, updateSettings } from '../../db/settings';
 import { listActivePets } from '../../db/pets';
+import { saveErrorText } from '../../db/ids';
 import type { ThemePref } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Segmented } from '../../ui/Segmented';
 import { loadSampleData } from '../../dev/sampleData';
+import { UnitsCard } from './UnitsCard';
 
 const THEMES = [
   { value: 'light', label: 'Light' },
@@ -17,6 +19,7 @@ export default function SettingsScreen() {
   const settings = useLiveQuery(() => getSettings(), []);
   const petCount = useLiveQuery(async () => (await listActivePets()).length, []);
   const [loading, setLoading] = useState(false);
+  const [themeError, setThemeError] = useState<string>();
   if (!settings) return null;
 
   return (
@@ -34,16 +37,20 @@ export default function SettingsScreen() {
 
       <div className="label">Appearance</div>
       <Card>
+        {themeError && <div role="alert" className="form-error">{themeError}</div>}
         <Segmented<ThemePref>
           label="Appearance"
           options={THEMES}
           value={settings.theme}
-          onChange={(theme) => updateSettings({ theme })}
+          onChange={(theme) => {
+            setThemeError(undefined);
+            updateSettings({ theme }).catch((err: unknown) => setThemeError(saveErrorText(err)));
+          }}
         />
-        <p className="muted" style={{ margin: '8px 2px 0', fontSize: 13 }}>
-          Auto follows your iPhone's light/dark setting.
-        </p>
+        <p className="muted setting-note">Auto follows your iPhone's light/dark setting.</p>
       </Card>
+
+      <UnitsCard settings={settings} />
 
       {import.meta.env.DEV && (
         <>
