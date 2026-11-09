@@ -7,7 +7,7 @@ import { resetDb } from '../../db/db';
 import { createPet } from '../../db/pets';
 import { logFeeding } from '../../db/feedings';
 import { renderAt } from '../../test/render';
-import { mockShare, unmockShare } from '../../test/share';
+import { mockShare, stubObjectUrls, unmockShare } from '../../test/share';
 import type { Pet } from '../../domain/types';
 
 let pet: Pet;
@@ -70,5 +70,62 @@ describe('Remind me toast (spec §5.3)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('when the calendar hand-off does not complete', () => {
+    const now = new Date(2026, 10, 8, 9, 0);
+    async function showToast() {
+      await logFeeding({ petId: pet.id, at: new Date(2026, 10, 7, 18, 0).toISOString(), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate' });
+      render(<RemindToast now={now} />);
+      act(() => showRemindToast(pet.id));
+      return screen.findByRole('status', { name: 'Feeding saved' });
+    }
+
+    it('shows the error and keeps the toast when the file cannot be created', async () => {
+      mockShare(false);
+      stubObjectUrls();
+      vi.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+        throw new Error('no blob urls');
+      });
+      const toast = await showToast();
+      const remind = within(toast).getByRole('button', { name: '📅 Remind me' });
+      await userEvent.click(remind);
+
+      expect(await within(toast).findByText("Couldn't create the calendar event.")).toBeInTheDocument();
+      expect(screen.getByRole('status', { name: 'Feeding saved' })).toBeInTheDocument();
+      await vi.waitFor(() => expect(remind).toBeEnabled()); // and the user can try again
+    });
+
+    it('clears the error when Remind me is tried again', async () => {
+      mockShare(false);
+      stubObjectUrls();
+      const create = vi.spyOn(URL, 'createObjectURL').mockImplementationOnce(() => {
+        throw new Error('no blob urls');
+      }).mockReturnValue('blob:reptender-test');
+      const toast = await showToast();
+      await userEvent.click(within(toast).getByRole('button', { name: '📅 Remind me' }));
+      expect(await within(toast).findByText("Couldn't create the calendar event.")).toBeInTheDocument();
+
+      await userEvent.click(within(toast).getByRole('button', { name: '📅 Remind me' }));
+      await vi.waitFor(() => expect(screen.queryByRole('status', { name: 'Feeding saved' })).toBeNull());
+      expect(create).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the toast, with Remind me, after the share sheet is cancelled', async () => {
+      const { share } = mockShare();
+      share.mockRejectedValueOnce(new DOMException('Share canceled', 'AbortError'));
+      const toast = await showToast();
+      const remind = within(toast).getByRole('button', { name: '📅 Remind me' });
+      await userEvent.click(remind);
+
+      await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(remind).toBeEnabled()); // the rejection has been processed
+      expect(screen.getByRole('status', { name: 'Feeding saved' })).toBeInTheDocument();
+      expect(within(toast).queryByText("Couldn't create the calendar event.")).toBeNull();
+
+      await userEvent.click(remind); // second try goes through
+      await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => expect(screen.queryByRole('status', { name: 'Feeding saved' })).toBeNull());
+    });
   });
 });

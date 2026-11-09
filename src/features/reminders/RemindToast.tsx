@@ -22,8 +22,10 @@ export default function RemindToast({ now: fixedNow }: { now?: Date }) {
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string>();
 
+  const toastId = toast?.id;
+  useEffect(() => setError(undefined), [toastId]); // a new toast starts without the last toast's error
+
   useEffect(() => {
-    setError(undefined);
     if (!toast || sharing) return;
     const id = window.setTimeout(hideRemindToast, TOAST_MS);
     return () => window.clearTimeout(id);
@@ -37,10 +39,11 @@ export default function RemindToast({ now: fixedNow }: { now?: Date }) {
   const remind = async () => {
     if (!due || sharing) return;
     setSharing(true);
+    setError(undefined);
     try {
       // Built and shared synchronously inside the tap (see deliverFile).
-      await deliverFile(calendarFile([feedingEvent(data.pet, due)], REMINDER_FILE));
-      hideRemindToast();
+      const result = await deliverFile(calendarFile([feedingEvent(data.pet, due)], REMINDER_FILE));
+      if (result !== 'cancelled') hideRemindToast(); // after a cancelled share the toast stays, so Remind me can be tapped again
     } catch {
       setError("Couldn't create the calendar event.");
     } finally {
