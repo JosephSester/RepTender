@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import PetsHome from './PetsHome';
 import { resetDb } from '../../db/db';
-import { createPet } from '../../db/pets';
+import { archivePet, createPet } from '../../db/pets';
 import { logFeeding } from '../../db/feedings';
 
 const now = new Date(2026, 10, 8, 9, 0);
@@ -20,6 +20,10 @@ const renderHome = () => render(<MemoryRouter><PetsHome now={now} /></MemoryRout
 
 beforeEach(async () => {
   await resetDb();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('PetsHome', () => {
@@ -45,11 +49,36 @@ describe('PetsHome', () => {
     expect(cards[1]).toHaveAttribute('href', `/pets/${noodle.id}`);
   });
 
+  it('draws the banner subline at full strength (no opacity)', async () => {
+    await addPet('Noodle', 'Corn Snake', 5, 3);
+    renderHome();
+    const line = await screen.findByText('Due today · 1 Pinky mouse');
+    expect(line.style.opacity).toBe('');
+  });
+
   it('logs a feeding from the hungry banner', async () => {
     await addPet('Noodle', 'Corn Snake', 5, 3);
     renderHome();
     await userEvent.click(await screen.findByRole('button', { name: 'Log' }));
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Feed Noodle' })).getByRole('button', { name: 'Save feeding' }));
     expect(await screen.findByText('In 5 days')).toBeInTheDocument();
+  });
+
+  it('hides archived pets behind "Show archived" and can unarchive them', async () => {
+    await addPet('Noodle', 'Corn Snake', 5, 3);
+    const pebble = await addPet('Pebble', 'Russian Tortoise', 2, 7, 'Greens');
+    await archivePet(pebble.id);
+    renderHome();
+
+    expect(await screen.findByText('1 pet · 1 due today')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Pebble/ })).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Show archived (1)' }));
+    const card = screen.getByRole('group', { name: 'Pebble (archived)' });
+    expect(within(card).getByText(/^Archived /)).toBeInTheDocument();
+
+    await userEvent.click(within(card).getByRole('button', { name: 'Unarchive' }));
+    expect(await screen.findByRole('link', { name: /Pebble/ })).toHaveAttribute('href', `/pets/${pebble.id}`);
+    // The archived list is its own live query, so it can update a moment after the pet list.
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: /Show archived|Hide archived/ })).toBeNull());
   });
 });

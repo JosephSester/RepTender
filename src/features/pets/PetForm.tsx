@@ -26,17 +26,19 @@ export default function PetForm() {
   const [form, setForm] = useState<FormState | null>(id ? null : EMPTY_FORM);
   const [originalPhotoId, setOriginalPhotoId] = useState<string>();
   const [error, setError] = useState<string>();
+  const [failures, setFailures] = useState(0);
   const [saving, setSaving] = useState(false);
   const photoUrl = usePhotoUrl(form?.photoId, 'full');
   const alertRef = useRef<HTMLDivElement>(null);
 
   // The alert sits near the top of a long form but Save is at the bottom: bring it into view.
+  // `failures` makes a repeated, identical error scroll and focus again.
   useEffect(() => {
     if (!error) return;
     const el = alertRef.current;
     el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); // missing in jsdom
     el?.focus({ preventScroll: true });
-  }, [error]);
+  }, [error, failures]);
 
   useEffect(() => {
     if (!id) return;
@@ -68,6 +70,7 @@ export default function PetForm() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form) return;
+    setError(undefined);
     setSaving(true);
     try {
       const input = toInput(form);
@@ -78,6 +81,7 @@ export default function PetForm() {
       navigate(`/pets/${petId}`, { replace: true });
     } catch (err) {
       setError(err instanceof ValidationError ? err.message : 'Could not save. Please try again.');
+      setFailures((n) => n + 1);
       setSaving(false);
     }
   }

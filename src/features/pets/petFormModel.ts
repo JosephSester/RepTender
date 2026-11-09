@@ -17,8 +17,11 @@ export interface FormState {
   pricePaid: string;
   sireName: string;
   sireMorph: string;
+  /** A link to another pet. The form has no picker for it yet, but an edit must keep it. */
+  sirePetId?: string;
   damName: string;
   damMorph: string;
+  damPetId?: string;
   feedingIntervalDays: string;
   usualFoodItem: string;
   usualQuantity: string;
@@ -48,8 +51,10 @@ export function toForm(pet: Pet): FormState {
     pricePaid: pet.pricePaid === undefined ? '' : String(pet.pricePaid),
     sireName: pet.sire?.name ?? '',
     sireMorph: pet.sire?.morph ?? '',
+    sirePetId: pet.sire?.petId,
     damName: pet.dam?.name ?? '',
     damMorph: pet.dam?.morph ?? '',
+    damPetId: pet.dam?.petId,
     feedingIntervalDays: String(pet.feedingIntervalDays),
     usualFoodItem: pet.usualFoodItem ?? '',
     usualQuantity: String(pet.usualQuantity),
@@ -59,8 +64,9 @@ export function toForm(pet: Pet): FormState {
 
 const opt = (s: string) => s.trim() || undefined;
 
-function parent(name: string, morph: string): ParentRef | undefined {
-  return opt(name) || opt(morph) ? { name: opt(name), morph: opt(morph) } : undefined;
+function parent(name: string, morph: string, petId: string | undefined): ParentRef | undefined {
+  if (!opt(name) && !opt(morph) && !petId) return undefined;
+  return { name: opt(name), morph: opt(morph), petId };
 }
 
 /** Every optional key is present (possibly undefined) so updatePet clears emptied fields. */
@@ -83,8 +89,8 @@ export function toInput(f: FormState): PetInput {
     acquiredFrom: opt(f.acquiredFrom),
     acquiredDate: opt(f.acquiredDate),
     pricePaid,
-    sire: parent(f.sireName, f.sireMorph),
-    dam: parent(f.damName, f.damMorph),
+    sire: parent(f.sireName, f.sireMorph, f.sirePetId),
+    dam: parent(f.damName, f.damMorph, f.damPetId),
     feedingIntervalDays: Number(f.feedingIntervalDays),
     usualFoodItem: opt(f.usualFoodItem),
     usualQuantity: Number(f.usualQuantity),

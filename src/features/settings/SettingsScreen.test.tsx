@@ -19,7 +19,7 @@ it('switches appearance', async () => {
   expect(auto).toHaveAttribute('aria-checked', 'true');
   await userEvent.click(screen.getByRole('radio', { name: 'Dark' }));
   await vi.waitFor(async () => expect((await getSettings()).theme).toBe('dark'));
-  expect(await screen.findByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true');
+  await vi.waitFor(() => expect(screen.getByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true'));
 });
 
 it('loads sample pets in development builds', async () => {

@@ -16,7 +16,8 @@
   --due-bg: #fce7cf;
   --due-text: #b85e1f;
   --late-bg: #f8d9d4;
-  --late-text: #b23a2b;
+  /* Spec #b23a2b was 4.49:1 on --late-bg (refused days); #ab3528 is 4.85:1. */
+  --late-text: #ab3528;
   --future: #b3a891;
   --tab-bg: #fffdf8;
   --tab-line: #ebe2d1;

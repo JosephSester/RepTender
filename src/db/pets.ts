@@ -48,14 +48,26 @@ export async function updatePet(id: string, patch: Partial<PetInput>): Promise<v
 
 export const getPet = (id: string) => db.pets.get(id);
 
+const byName = (a: Pet, b: Pet) => a.name.localeCompare(b.name);
+
 export async function listActivePets(): Promise<Pet[]> {
   const all = await db.pets.toArray();
-  return all.filter((p) => !p.archivedAt).sort((a, b) => a.name.localeCompare(b.name));
+  return all.filter((p) => !p.archivedAt).sort(byName);
+}
+
+export async function listArchivedPets(): Promise<Pet[]> {
+  const all = await db.pets.toArray();
+  return all.filter((p) => p.archivedAt).sort(byName);
 }
 
 export async function archivePet(id: string): Promise<void> {
   const ts = nowIso();
   await db.pets.update(id, { archivedAt: ts, updatedAt: ts });
+}
+
+export async function unarchivePet(id: string): Promise<void> {
+  const changed = await db.pets.update(id, { archivedAt: undefined, updatedAt: nowIso() });
+  if (!changed) throw new Error(`Pet ${id} not found`);
 }
 
 export async function deletePet(id: string): Promise<void> {

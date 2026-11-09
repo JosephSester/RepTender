@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { format, parseISO } from 'date-fns';
+import { listArchivedPets, unarchivePet } from '../../db/pets';
 import { Card } from '../../ui/Card';
 import { Pill, type PillTone } from '../../ui/Pill';
 import { PetAvatar } from '../../ui/PetAvatar';
@@ -19,7 +22,9 @@ export function bannerLine(s: PetSummary): string {
 export default function PetsHome({ now: fixedNow }: { now?: Date }) {
   const now = useNow(fixedNow);
   const summaries = usePetSummaries(now);
+  const archived = useLiveQuery(() => listArchivedPets(), []);
   const [logFor, setLogFor] = useState<PetSummary | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   if (!summaries) return null;
 
   const today = summaries.filter((s) => s.status === 'today').length;
@@ -31,6 +36,14 @@ export default function PetsHome({ now: fixedNow }: { now?: Date }) {
   ].filter(Boolean).join(' · ');
   const urgent = summaries.find((s) => s.status !== 'soon');
 
+  async function onUnarchive(id: string) {
+    try {
+      await unarchivePet(id);
+    } catch {
+      window.alert('Could not unarchive. Please try again.');
+    }
+  }
+
   return (
     <>
       <h1>My Reptiles</h1>
@@ -41,7 +54,7 @@ export default function PetsHome({ now: fixedNow }: { now?: Date }) {
           <div className="row">
             <div className="grow">
               <div className="rounded" style={{ fontSize: 17 }}>{`${urgent.pet.name} is hungry`}</div>
-              <div style={{ opacity: 0.9 }}>{bannerLine(urgent)}</div>
+              <div>{bannerLine(urgent)}</div>
             </div>
             <button type="button" className="btn" onClick={() => setLogFor(urgent)}>Log</button>
           </div>
@@ -80,6 +93,36 @@ export default function PetsHome({ now: fixedNow }: { now?: Date }) {
         <Link className="btn-ghost" style={{ textAlign: 'center', textDecoration: 'none' }} to="/pets/new">
           + Add reptile
         </Link>
+      )}
+
+      {archived && archived.length > 0 && (
+        <>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ marginTop: 8 }}
+            aria-expanded={showArchived}
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            {showArchived ? 'Hide archived' : `Show archived (${archived.length})`}
+          </button>
+          {showArchived && (
+            <div style={{ marginTop: 8 }}>
+              {archived.map((p) => (
+                <Card key={p.id} role="group" aria-label={`${p.name} (archived)`}>
+                  <div className="row">
+                    <PetAvatar photoId={p.photoId} species={p.species} />
+                    <div className="grow">
+                      <h3 style={{ margin: 0, fontSize: 16 }}>{p.name}</h3>
+                      <div className="muted">{`Archived ${format(parseISO(p.archivedAt!), 'MMM d, yyyy')}`}</div>
+                    </div>
+                    <button type="button" className="btn" onClick={() => onUnarchive(p.id)}>Unarchive</button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {logFor && (

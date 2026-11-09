@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import PetForm from './PetForm';
@@ -26,6 +26,10 @@ function renderForm(path: string) {
 
 beforeEach(async () => {
   await resetDb();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('PetForm', () => {
@@ -75,6 +79,18 @@ describe('PetForm', () => {
     expect((await getPet(p.id))!.morph).toBeUndefined();
   });
 
+  it('keeps a sire link to another pet when the pet is edited', async () => {
+    const apollo = await createPet({ name: 'Apollo', species: 'Corn Snake', feedingIntervalDays: 7 });
+    const p = await createPet({
+      name: 'Noodle', species: 'Corn Snake', feedingIntervalDays: 5, sire: { name: 'Apollo', petId: apollo.id },
+    });
+    renderForm(`/pets/${p.id}/edit`);
+    await screen.findByDisplayValue('Noodle');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText(`profile ${p.id}`);
+    expect((await getPet(p.id))!.sire).toMatchObject({ name: 'Apollo', petId: apollo.id });
+  });
+
   it('deletes a pet after confirmation', async () => {
     const p = await createPet({ name: 'Noodle', species: 'Corn Snake', feedingIntervalDays: 5 });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -100,18 +116,36 @@ describe('PetForm', () => {
     expect(await screen.findByText('home')).toBeInTheDocument();
     expect(await listActivePets()).toEqual([]);
     expect(await getPet(p.id)).toBeDefined();
-    confirm.mockRestore();
   });
 
   it('moves focus to the error alert when Save fails', async () => {
     const scroll = vi.fn();
     Element.prototype.scrollIntoView = scroll;
+    try {
+      renderForm('/pets/new');
+      await userEvent.click(await screen.findByRole('button', { name: 'Save pet' }));
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveFocus();
+      expect(scroll).toHaveBeenCalled();
+    } finally {
+      // @ts-expect-error jsdom has no scrollIntoView: remove the stub so later tests see the real jsdom
+      delete Element.prototype.scrollIntoView;
+    }
+  });
+
+  it('re-focuses the alert when the same error happens twice', async () => {
     renderForm('/pets/new');
-    await userEvent.click(await screen.findByRole('button', { name: 'Save pet' }));
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveFocus();
-    expect(scroll).toHaveBeenCalled();
-    // @ts-expect-error restore jsdom's lack of scrollIntoView
-    delete Element.prototype.scrollIntoView;
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Name'), 'Noodle');
+    await user.type(screen.getByLabelText('Species'), 'Corn Snake');
+    fireEvent.change(screen.getByLabelText('Price paid ($)'), { target: { value: '-5' } });
+    await user.click(screen.getByRole('button', { name: 'Save pet' }));
+    expect(await screen.findByRole('alert')).toHaveFocus();
+
+    await user.click(screen.getByLabelText('Name'));
+    expect(screen.getByLabelText('Name')).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Save pet' }));
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveFocus());
+    expect(screen.getByRole('alert')).toHaveTextContent('Price must be a number');
   });
 });

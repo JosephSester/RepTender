@@ -9,3 +9,4 @@ Run on the iPhone 17 after each deploy. Tick every line before telling the user 
 5. Log a feeding (Ate it, Refused, Regurgitated). The calendar colors and the Next feeding date update.
 6. Turn on Airplane Mode, close RepTender fully, reopen it: it still opens and shows all data.
 7. Deploy a small change, reopen the app: "Update available — tap to refresh" appears, tapping it loads the new version, and data is unchanged.
+8. Tap a text field (a pet's Name, a feeding's Notes): the page must not zoom in, and it is still at normal size after you leave the field.
