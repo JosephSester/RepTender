@@ -96,6 +96,8 @@ function VetVisitForm({ pet, onClose, visit, now: fixedNow }: Props) {
   }
 
   function cancel() {
+    // Dismissing mid-save would delete photos the visit being saved references.
+    if (saving) return;
     for (const id of added) deletePhoto(id).catch(() => {});
     onClose();
   }

@@ -33,4 +33,16 @@ describe('vetModel', () => {
     expect(telHref('(555) 201-4470')).toBe('tel:5552014470');
     expect(telHref('+44 20 7946 0958')).toBe('tel:+442079460958');
   });
+
+  it('drops extensions and stray plus signs, and gives no link without digits', () => {
+    expect(telHref('(555) 201-4470 x23')).toBe('tel:5552014470');
+    expect(telHref('555-201-4470 ext. 9')).toBe('tel:5552014470');
+    expect(telHref('555-201-4470 #12')).toBe('tel:5552014470');
+    expect(telHref('555-201-4470,,12')).toBe('tel:5552014470');
+    expect(telHref('555-201-4470;12')).toBe('tel:5552014470');
+    expect(telHref('555+123')).toBe('tel:555123');
+    expect(telHref('n/a')).toBeUndefined();
+    expect(telHref('   ')).toBeUndefined();
+    expect(telHref('x23')).toBeUndefined();
+  });
 });

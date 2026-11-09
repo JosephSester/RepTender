@@ -48,7 +48,7 @@ export default function VetScreen({ now: fixedNow }: { now?: Date }) {
             <div className="muted">
               {clinic.vet && <span>{clinic.vet}</span>}
               {clinic.vet && clinic.phone && <span> · </span>}
-              {clinic.phone && <a href={telHref(clinic.phone)}>{clinic.phone}</a>}
+              {clinic.phone && (telHref(clinic.phone) ? <a href={telHref(clinic.phone)}>{clinic.phone}</a> : <span>{clinic.phone}</span>)}
             </div>
           </Card>
         </>

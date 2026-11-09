@@ -27,4 +27,13 @@ export function upcomingAppointment(visits: readonly VetVisit[], now: Date): { a
   return best;
 }
 
-export const telHref = (phone: string): string => `tel:${phone.replace(/[^\d+]/g, '')}`;
+/**
+ * A tap-to-call link, or undefined when the phone has no digits. Anything from an extension
+ * marker (x, ext, #, comma, semicolon) on is dropped, and only a leading "+" is kept.
+ */
+export function telHref(phone: string): string | undefined {
+  const main = phone.split(/ext|[x#,;]/i)[0] ?? '';
+  const digits = main.replace(/\D/g, '');
+  if (!digits) return undefined;
+  return `tel:${main.trim().startsWith('+') ? '+' : ''}${digits}`;
+}

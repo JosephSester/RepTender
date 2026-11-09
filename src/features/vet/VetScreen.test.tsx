@@ -10,6 +10,10 @@ import { createVetVisit, listVetVisits } from '../../db/vetVisits';
 import { renderAt } from '../../test/render';
 
 // jsdom can't decode images: the photo pipeline returns fixed blobs.
+vi.mock('../../db/vetVisits', async (orig) => {
+  const real = await orig<typeof import('../../db/vetVisits')>();
+  return { ...real, createVetVisit: vi.fn(real.createVetVisit) };
+});
 vi.mock('../../lib/image', () => ({
   photoFromFile: vi.fn(async () => ({ blob: new Blob(['full']), thumbBlob: new Blob(['thumb']), width: 4, height: 3 })),
 }));
@@ -130,6 +134,39 @@ describe('VetScreen', () => {
     expect(within(sheet).queryByRole('button', { name: 'Clear next appointment' })).toBeNull();
     await userEvent.click(within(sheet).getByRole('button', { name: 'Save visit' }));
     await vi.waitFor(async () => expect((await listVetVisits(petId)).at(-1)!.nextAppointment).toBeUndefined());
+  });
+
+  it('shows a phone with no digits as plain text, not a link', async () => {
+    await createVetVisit({ petId, date: '2026-09-01', phone: 'n/a', clinic: 'Newest Clinic' });
+    renderVet();
+    await screen.findByText('Newest Clinic');
+    expect(screen.getByText('n/a')).toBeInTheDocument();
+    expect(screen.getByText('n/a').closest('a')).toBeNull();
+    expect(screen.queryByRole('link', { name: '(555) 201-4470' })).toBeNull();
+  });
+
+  it('ignores Escape while a save is in flight, keeping the new photos', async () => {
+    const real = await vi.importActual<typeof import('../../db/vetVisits')>('../../db/vetVisits');
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    vi.mocked(createVetVisit).mockImplementationOnce(async (input) => {
+      await gate;
+      return real.createVetVisit(input);
+    });
+    renderVet();
+    await userEvent.click(await screen.findByRole('button', { name: 'New vet visit' }));
+    const sheet = screen.getByRole('dialog', { name: 'New vet visit' });
+    fireEvent.change(within(sheet).getByLabelText('Add photos'), { target: { files: [photoFile()] } });
+    await within(sheet).findByRole('button', { name: 'Remove photo' });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save visit' }));
+    expect(within(sheet).getByRole('button', { name: 'Save visit' })).toBeDisabled();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'New vet visit' })).toBeInTheDocument();
+    release();
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const saved = (await listVetVisits(petId)).at(-1)!;
+    expect(saved.photoIds).toHaveLength(1);
+    expect(await db.photos.get(saved.photoIds[0]!)).toBeDefined();
   });
 
   it('deletes a visit and its photos after confirmation', async () => {
