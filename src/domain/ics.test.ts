@@ -21,6 +21,9 @@ describe('ics helpers', () => {
   it('escapes text values', () => {
     expect(escapeText('Mist, then soak; back\\slash\nline 2')).toBe('Mist\\, then soak\\; back\\\\slash\\nline 2');
   });
+  it('turns CRLF, a lone CR and LF into an escaped newline', () => {
+    expect(escapeText('a\r\nb\rc\nd')).toBe('a\\nb\\nc\\nd');
+  });
   it('folds long lines at 75 octets without splitting a character', () => {
     const line = `SUMMARY:${'🦎 Feed Noodle '.repeat(8)}`;
     const folded = foldLine(line);

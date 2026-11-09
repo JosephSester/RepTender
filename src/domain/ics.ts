@@ -19,7 +19,7 @@ export const icsDateTime = (d: Date): string => d.toISOString().replace(/[-:]/g,
 
 /** RFC 5545 §3.3.11 TEXT escaping. */
 export const escapeText = (s: string): string =>
-  s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
 
 const encoder = new TextEncoder();
 
