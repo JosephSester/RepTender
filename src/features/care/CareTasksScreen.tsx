@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { isValid } from 'date-fns';
 import type { CareTask } from '../../domain/types';
+import { careEvent, careEventStart } from '../../domain/reminders';
+import { deliverFile } from '../../lib/deliver';
+import { calendarFile, REMINDER_FILE } from '../reminders/calendarFile';
 import { formatTimeOfDay } from '../../domain/dates';
 import { dueStatus, statusLabel } from '../../domain/feeding';
 import { CARE_SUGGESTIONS, careNextDue, completedOn, everyLabel } from '../../domain/care';
@@ -81,6 +85,26 @@ export default function CareTasksScreen({ now: fixedNow }: { now?: Date }) {
                 </div>
               </div>
               <Pill tone={TONE[dueStatus(due, now)]}>{statusLabel(due, now)}</Pill>
+              {isValid(due) && careEventStart(task, due).getTime() > now.getTime() && (
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`Add ${task.name} to Calendar`}
+                  disabled={busy.has(`cal-${task.id}`)}
+                  // deliverFile runs synchronously inside the tap (iOS needs the gesture for the share sheet).
+                  onClick={() =>
+                    run(`cal-${task.id}`, async () => {
+                      try {
+                        await deliverFile(calendarFile([careEvent(task, task.petId ? pet.name : undefined, due)], REMINDER_FILE));
+                      } catch {
+                        setError("Couldn't create the calendar event.");
+                      }
+                    })
+                  }
+                >
+                  📅
+                </button>
+              )}
               <button type="button" className="btn" onClick={() => setEditing(task)}>Edit</button>
             </div>
           </Card>

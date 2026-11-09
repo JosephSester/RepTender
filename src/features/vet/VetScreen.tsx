@@ -11,6 +11,9 @@ import { formatDateKey, formatMoney, plural } from '../pets/format';
 import { confirmDelete, PetNotFound, SubScreenHeader, useRoutePet } from '../pets/subScreen';
 import { clinicInfo, telHref, upcomingAppointment } from './vetModel';
 import VetVisitSheet from './VetVisitSheet';
+import { vetEvent } from '../../domain/reminders';
+import { deliverFile } from '../../lib/deliver';
+import { calendarFile, REMINDER_FILE } from '../reminders/calendarFile';
 
 export default function VetScreen({ now: fixedNow }: { now?: Date }) {
   const pet = useRoutePet();
@@ -19,6 +22,8 @@ export default function VetScreen({ now: fixedNow }: { now?: Date }) {
   const visits = useLiveQuery(() => (petId ? listVetVisits(petId) : undefined), [petId]);
   const [editing, setEditing] = useState<VetVisit | 'new' | null>(null);
   const [viewing, setViewing] = useState<string>();
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string>();
 
   if (pet === undefined) return null;
   if (pet === null) return <PetNotFound />;
@@ -26,6 +31,7 @@ export default function VetScreen({ now: fixedNow }: { now?: Date }) {
 
   const clinic = clinicInfo(visits);
   const next = upcomingAppointment(visits, now);
+  const nextEvent = next ? vetEvent(pet.name, next.visit, clinic?.clinic) : null;
   const history = [...visits].reverse();
 
   return (
@@ -37,6 +43,30 @@ export default function VetScreen({ now: fixedNow }: { now?: Date }) {
           <div className="label" style={{ margin: 0 }}>Next appointment</div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>{format(next.at, 'EEE, MMM d, yyyy · h:mm a')}</div>
           {(next.visit.clinic ?? clinic?.clinic) && <div className="muted">{next.visit.clinic ?? clinic?.clinic}</div>}
+          {nextEvent && nextEvent.start.getTime() > now.getTime() && (
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: 8 }}
+              disabled={sharing}
+              onClick={async () => {
+                if (sharing) return;
+                setSharing(true);
+                setShareError(undefined);
+                try {
+                  // Built and shared synchronously inside the tap (see deliverFile).
+                  await deliverFile(calendarFile([nextEvent], REMINDER_FILE));
+                } catch {
+                  setShareError("Couldn't create the calendar event.");
+                } finally {
+                  setSharing(false);
+                }
+              }}
+            >
+              📅 Add to Calendar
+            </button>
+          )}
+          {shareError && <div role="alert" className="form-error">{shareError}</div>}
         </Card>
       )}
 
