@@ -16,6 +16,7 @@ import NotesScreen from '../features/notes/NotesScreen';
 import ScheduleScreen from '../features/schedule/ScheduleScreen';
 import AddScreen from '../features/add/AddScreen';
 import AppBadge from '../features/schedule/AppBadge';
+import CrashTest from './CrashTest';
 
 export function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export function AppRoutes() {
         <Route path="add" element={<AddScreen />} />
         <Route path="settings" element={<SettingsScreen />} />
       </Route>
+      <Route path="crash-test" element={<CrashTest />} />
     </Routes>
   );
 }
