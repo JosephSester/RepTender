@@ -7,6 +7,8 @@ import type { ThemePref } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Segmented } from '../../ui/Segmented';
 import { loadSampleData } from '../../dev/sampleData';
+import { RemindersButton } from '../reminders/RemindersButton';
+import { useScheduleSources } from '../schedule/scheduleSources';
 import { UnitsCard } from './UnitsCard';
 
 const THEMES = [
@@ -18,6 +20,7 @@ const THEMES = [
 export default function SettingsScreen() {
   const settings = useLiveQuery(() => getSettings(), []);
   const petCount = useLiveQuery(async () => (await listActivePets()).length, []);
+  const sources = useScheduleSources();
   const [loading, setLoading] = useState(false);
   const [themeError, setThemeError] = useState<string>();
   if (!settings) return null;
@@ -51,6 +54,13 @@ export default function SettingsScreen() {
       </Card>
 
       <UnitsCard settings={settings} />
+
+      <div className="label">Reminders &amp; data</div>
+      <Card role="group" aria-label="Reminders & data">
+        <div className="data-actions">
+          <RemindersButton sources={sources} label="📅 Add reminders to Calendar" />
+        </div>
+      </Card>
 
       {import.meta.env.DEV && (
         <>
