@@ -14,6 +14,7 @@ import CareTasksScreen from '../features/care/CareTasksScreen';
 import VetScreen from '../features/vet/VetScreen';
 import NotesScreen from '../features/notes/NotesScreen';
 import ScheduleScreen from '../features/schedule/ScheduleScreen';
+import AddScreen from '../features/add/AddScreen';
 
 export function AppRoutes() {
   return (
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Route path="pets/:id/vet" element={<VetScreen />} />
         <Route path="pets/:id/notes" element={<NotesScreen />} />
         <Route path="schedule" element={<ScheduleScreen />} />
+        <Route path="add" element={<AddScreen />} />
         <Route path="settings" element={<SettingsScreen />} />
       </Route>
     </Routes>
