@@ -12,6 +12,7 @@ import { Stepper } from '../../ui/Stepper';
 import { Segmented } from '../../ui/Segmented';
 import { PetAvatar } from '../../ui/PetAvatar';
 import { formatDay, previewNextDue, type LogOutcome } from './logModel';
+import { showRemindToast } from '../reminders/toastStore';
 
 interface Props {
   pet: Pet;
@@ -93,6 +94,7 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
             ? { foundAt: foundAt.toISOString(), pushBackDays: pushBack ? Number(pushBackDays) : null }
             : undefined,
       });
+      showRemindToast(pet.id); // spec §5.3: "📅 Remind me" (shown by AppShell)
       onClose();
     } catch (err) {
       setError(err instanceof ValidationError ? err.message : 'Could not save. Please try again.');

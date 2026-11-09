@@ -3,6 +3,7 @@ import './theme/base.css';
 import './ui/ui.css';
 import './ui/husbandry.css';
 import './ui/settings.css';
+import './ui/toast.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';

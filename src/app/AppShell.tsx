@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { TabBar } from './TabBar';
+import RemindToast from '../features/reminders/RemindToast';
 
 export default function AppShell() {
   return (
@@ -8,6 +9,7 @@ export default function AppShell() {
         <Outlet />
       </main>
       <TabBar />
+      <RemindToast />
     </div>
   );
 }
