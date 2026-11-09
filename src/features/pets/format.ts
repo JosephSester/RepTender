@@ -17,6 +17,7 @@ export function formatDateKey(key?: string): string {
 
 /** "$65" for whole amounts, "$85.50" when there are cents. */
 export function formatMoney(n: number): string {
+  if (!Number.isFinite(n)) return '—'; // an imported value can be anything; never show "$NaN"
   const cents = Math.round(n * 100);
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }

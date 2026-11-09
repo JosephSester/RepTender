@@ -20,4 +20,10 @@ describe('formatMoney', () => {
     expect(formatMoney(85.5)).toBe('$85.50');
     expect(formatMoney(0.1 + 0.2)).toBe('$0.30');
   });
+
+  it('shows a dash for NaN and Infinity instead of "$NaN"', () => {
+    expect(formatMoney(Number.NaN)).toBe('—');
+    expect(formatMoney(Number.POSITIVE_INFINITY)).toBe('—');
+    expect(formatMoney(Number.NEGATIVE_INFINITY)).toBe('—');
+  });
 });
