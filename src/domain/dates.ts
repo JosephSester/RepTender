@@ -37,7 +37,8 @@ export function combineDateTime(date: string, time: string): Date | null {
   return atTime(parseDateKey(date), time);
 }
 
-/** '18:00' → '6:00 PM'. */
+/** '18:00' → '6:00 PM'. Returns '' for anything that isn't HH:mm. */
 export function formatTimeOfDay(hhmm: string): string {
+  if (!isTimeOfDay(hhmm)) return '';
   return format(atTime(new Date(2000, 0, 1), hhmm), 'h:mm a');
 }

@@ -38,4 +38,9 @@ describe('input-safe helpers', () => {
     expect(formatTimeOfDay('18:00')).toBe('6:00 PM');
     expect(formatTimeOfDay('08:15')).toBe('8:15 AM');
   });
+  it('formatTimeOfDay returns an empty string for non-HH:mm input instead of throwing', () => {
+    expect(formatTimeOfDay('')).toBe('');
+    expect(formatTimeOfDay('7:3')).toBe('');
+    expect(formatTimeOfDay('25:00')).toBe('');
+  });
 });

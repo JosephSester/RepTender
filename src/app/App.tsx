@@ -10,6 +10,7 @@ import PoopScreen from '../features/poop/PoopScreen';
 import ShedsScreen from '../features/sheds/ShedsScreen';
 import WeightScreen from '../features/weight/WeightScreen';
 import HabitatScreen from '../features/habitat/HabitatScreen';
+import CareTasksScreen from '../features/care/CareTasksScreen';
 
 export function AppRoutes() {
   return (
@@ -24,6 +25,7 @@ export function AppRoutes() {
         <Route path="pets/:id/sheds" element={<ShedsScreen />} />
         <Route path="pets/:id/weight" element={<WeightScreen />} />
         <Route path="pets/:id/habitat" element={<HabitatScreen />} />
+        <Route path="pets/:id/care" element={<CareTasksScreen />} />
         <Route path="settings" element={<SettingsScreen />} />
       </Route>
     </Routes>
