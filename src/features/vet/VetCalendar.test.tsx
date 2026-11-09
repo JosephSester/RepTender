@@ -38,13 +38,15 @@ it('adds the next appointment to Calendar', async () => {
   const { share, file } = mockShare();
   renderVet();
   const card = await screen.findByRole('group', { name: 'Next appointment' });
-  await userEvent.click(within(card).getByRole('button', { name: '📅 Add to Calendar' }));
+  const add = within(card).getByRole('button', { name: '📅 Add to Calendar' });
+  await userEvent.click(add);
   await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
   const ics = await file().text();
   expect(ics).toContain('SUMMARY:Vet · Noodle');
   expect(ics).toContain(`UID:${visit.id}-2027-06-14@reptender`);
   expect(ics).toContain('LOCATION:Exotic Animal Clinic');
   expect(ics).toContain('DESCRIPTION:Follow-up after: Wellness exam');
+  await vi.waitFor(() => expect(add).toBeEnabled()); // the sharing flag is cleared before the test ends
 });
 
 it('offers no button once the appointment time has passed', async () => {

@@ -40,22 +40,26 @@ it('adds a care task to Calendar as one event at its time', async () => {
   const { share, file } = mockShare();
   renderCare();
   const card = await screen.findByRole('article', { name: 'Mist' });
-  await userEvent.click(within(card).getByRole('button', { name: 'Add Mist to Calendar' }));
+  const add = within(card).getByRole('button', { name: 'Add Mist to Calendar' });
+  await userEvent.click(add);
   await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
   const ics = await file().text();
   expect(ics).toContain('SUMMARY:Mist · Noodle');
   expect(ics).toMatch(/UID:[\w-]+-2026-11-09@reptender/);
   expect(ics).toContain(`DTSTART:${new Date(2026, 10, 9, 20, 0).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`);
   expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+  await vi.waitFor(() => expect(add).toBeEnabled()); // the busy flag is cleared before the test ends
 });
 
 it('uses 09:00 for a task with no time, and names All-pets tasks', async () => {
   const { share, file } = mockShare();
   renderCare();
-  await userEvent.click(await screen.findByRole('button', { name: 'Add Fresh water to Calendar' }));
+  const add = await screen.findByRole('button', { name: 'Add Fresh water to Calendar' });
+  await userEvent.click(add);
   await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
   const ics = await file().text();
   expect(ics).toContain('SUMMARY:Fresh water · All pets');
+  await vi.waitFor(() => expect(add).toBeEnabled());
   expect(ics).toContain(`DTSTART:${new Date(2026, 10, 9, 9, 0).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`);
 });
 

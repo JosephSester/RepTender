@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -60,8 +60,11 @@ describe('Export backup', () => {
     renderSettings();
     const data = await card();
     await userEvent.click(within(data).getByRole('button', { name: 'Export backup' }));
-    await userEvent.click(await within(data).findByRole('button', { name: /^Save backup file/ }));
-    expect(await within(data).findByRole('button', { name: /^Save backup file/ })).toBeEnabled();
+    const save = await within(data).findByRole('button', { name: /^Save backup file/ });
+    await userEvent.click(save);
+    await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(save).toBeEnabled()); // the rejection has been processed
+    expect(within(data).queryByRole('status')).toBeNull();
     expect((await getSettings()).lastBackupAt).toBeUndefined();
   });
 
@@ -137,12 +140,16 @@ describe('Storage warning', () => {
 
   it('stays hidden below that', async () => {
     let resolve!: (e: StorageEstimate) => void;
-    Object.defineProperty(navigator, 'storage', {
-      value: { estimate: () => new Promise<StorageEstimate>((r) => (resolve = r)) }, configurable: true,
-    });
+    const estimate = vi.fn(() => new Promise<StorageEstimate>((r) => (resolve = r)));
+    Object.defineProperty(navigator, 'storage', { value: { estimate }, configurable: true });
     renderSettings();
     const data = await card();
-    resolve({ usage: 100, quota: 1000 });
-    await vi.waitFor(() => expect(within(data).queryByText(/^Storage is/)).toBeNull());
+    await vi.waitFor(() => expect(estimate).toHaveBeenCalled());
+    // Settle the estimate inside act and let the hook's promise chain finish, so no update lands after the test.
+    await act(async () => {
+      resolve({ usage: 100, quota: 1000 });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(within(data).queryByText(/^Storage is/)).toBeNull();
   });
 });
