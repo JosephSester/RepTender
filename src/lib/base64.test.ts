@@ -26,3 +26,9 @@ it('rejects anything that is not a base64 data URL', () => {
   expect(dataUrlToBlob('https://example.com/a.jpg')).toBeNull();
   expect(dataUrlToBlob('data:image/jpeg;base64,')).not.toBeNull(); // an empty file is still a file
 });
+
+it('only accepts image types', () => {
+  expect(dataUrlToBlob('data:text/html;base64,PGI+')).toBeNull();
+  expect(dataUrlToBlob('data:application/octet-stream;base64,aGk=')).toBeNull();
+  expect(dataUrlToBlob('data:image/png;base64,aGk=')).not.toBeNull();
+});

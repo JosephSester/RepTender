@@ -41,7 +41,8 @@ export const TABLE_NAMES: readonly TableName[] = [
 /** The tables a schema version 1 (Plan 1) backup has. */
 export const V1_TABLE_NAMES: readonly TableName[] = ['pets', 'feedings', 'regurgitations', 'photos', 'foodItems', 'settings'];
 
-type Check = (v: unknown) => boolean;
+/** A validator. Object validators also carry `clean`, which drops null sub-fields ("not set"). */
+type Check = ((v: unknown) => boolean) & { clean?: (v: unknown) => unknown };
 interface Field {
   check: Check;
   optional: boolean;
@@ -63,7 +64,21 @@ const time: Check = (v) => typeof v === 'string' && isTimeOfDay(v);
 const dataUrl: Check = (v) => typeof v === 'string' && v.startsWith('data:'); // decoded (and checked) in backup.ts
 const oneOf = (...values: string[]): Check => (v) => typeof v === 'string' && values.includes(v);
 const listOf = (check: Check): Check => (v) => Array.isArray(v) && v.every(check);
-const shape = (fields: Fields): Check => (v) => isObject(v) && Object.entries(fields).every(([k, f]) => fieldOk(v[k], f));
+const shape = (fields: Fields): Check => {
+  const check: Check = (v) => isObject(v) && Object.entries(fields).every(([k, f]) => fieldOk(v[k], f));
+  check.clean = (v) => cleanFields(v as Record<string, unknown>, fields);
+  return check;
+};
+
+/** A copy of `row` with null optional fields removed, at every nesting level the spec describes. */
+function cleanFields(row: Record<string, unknown>, fields: Fields): Record<string, unknown> {
+  const clean: Record<string, unknown> = { ...row };
+  for (const [key, field] of Object.entries(fields)) {
+    if (row[key] === null) delete clean[key];
+    else if (row[key] !== undefined && field.check.clean) clean[key] = field.check.clean(row[key]);
+  }
+  return clean;
+}
 
 function fieldOk(value: unknown, field: Field): boolean {
   if (value === undefined || value === null) return field.optional;
@@ -154,10 +169,8 @@ function checkRows(name: TableName, rows: unknown[]): Record<string, unknown>[] 
   const ids = new Set<string>();
   return rows.map((row, i) => {
     if (!isObject(row)) return fail(name, i, ' is not a record.');
-    const clean: Record<string, unknown> = { ...row };
     for (const [key, field] of Object.entries(spec.fields)) {
       if (!fieldOk(row[key], field)) fail(name, i, `: "${key}" is missing or not valid.`);
-      if (row[key] === null) delete clean[key];
     }
     if (spec.atLeastOne && spec.atLeastOne.every((k) => row[k] === undefined || row[k] === null)) {
       fail(name, i, ` needs at least one of ${spec.atLeastOne.join(', ')}.`);
@@ -165,7 +178,7 @@ function checkRows(name: TableName, rows: unknown[]): Record<string, unknown>[] 
     const id = String(row.id);
     if (ids.has(id)) fail(name, i, ': "id" is used twice.');
     ids.add(id);
-    return clean;
+    return cleanFields(row, spec.fields);
   });
 }
 
@@ -225,7 +238,7 @@ export function validateTables(raw: Record<string, unknown>, schemaVersion: numb
     if (!Array.isArray(rows)) throw new BackupError(`This backup is missing the ${name} table.`);
     if (schemaVersion === 1 && name === 'pets') {
       // Same as the Dexie v1 → v2 upgrade: every pet gets a habitatTargets object.
-      out[name] = checkRows(name, rows.map((p) => (isObject(p) && p.habitatTargets === undefined ? { ...p, habitatTargets: {} } : p)));
+      out[name] = checkRows(name, rows.map((p) => (isObject(p) && !p.habitatTargets ? { ...p, habitatTargets: {} } : p)));
     } else {
       out[name] = checkRows(name, rows);
     }

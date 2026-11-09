@@ -74,12 +74,17 @@ export function pruneOrphans(t: BackupTables): BackupTables {
   };
 }
 
+/** Import accepts only image/* data URLs, so a photo blob stored without an image type is labelled as a JPEG. */
+const imageBlob = (b: Blob): Blob => (b.type.startsWith('image/') ? b : new Blob([b], { type: 'image/jpeg' }));
+
 export async function createBackup(now: Date = new Date()): Promise<BackupJson> {
   const tables = pruneOrphans(await readAllTables());
   // Encoding is async (Blob reads), so it runs after the read transaction has finished.
-  const photos = await Promise.all(
-    tables.photos.map(async (p) => ({ ...p, blob: await blobToDataUrl(p.blob), thumbBlob: await blobToDataUrl(p.thumbBlob) })),
-  );
+  // One photo at a time keeps peak memory low on a phone (each photo is a Blob, a byte copy and a string).
+  const photos: PhotoJson[] = [];
+  for (const p of tables.photos) {
+    photos.push({ ...p, blob: await blobToDataUrl(imageBlob(p.blob)), thumbBlob: await blobToDataUrl(imageBlob(p.thumbBlob)) });
+  }
   return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now.toISOString(), tables: { ...tables, photos } };
 }
 

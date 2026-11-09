@@ -8,9 +8,10 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type || 'application/octet-stream'};base64,${btoa(binary)}`;
 }
 
-const DATA_URL = /^data:([\w.+-]+\/[\w.+-]+);base64,([A-Za-z0-9+/]*={0,2})$/;
+// Only image types: a backup is not a way to smuggle HTML or script into the app's origin.
+const DATA_URL = /^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/]*={0,2})$/;
 
-/** The reverse of blobToDataUrl, or null for anything that isn't a valid base64 data URL. */
+/** The reverse of blobToDataUrl, or null for anything that isn't a valid base64 image data URL. */
 export function dataUrlToBlob(url: string): Blob | null {
   const m = DATA_URL.exec(url);
   if (!m || m[2]!.length % 4 !== 0) return null;

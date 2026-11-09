@@ -202,3 +202,58 @@ describe('invalid backups are rejected with a clear message (spec §9)', () => {
     expect(() => parseBackup('null')).toThrow("That file isn't a RepTender backup.");
   });
 });
+
+describe('hardening', () => {
+  it('knows every Dexie table, so a new table cannot be skipped by export and wiped by restore', () => {
+    expect(db.tables.map((t) => t.name).sort()).toEqual([...TABLE_NAMES].sort());
+  });
+
+  it('reads null inside nested objects as "not set" and stores no nulls', async () => {
+    await seed();
+    const b = clone(await createBackup(now));
+    const pet = b.tables.pets[0]! as unknown as Record<string, unknown>;
+    pet.habitatTargets = { warmMinC: 26, warmMaxC: null };
+    pet.sire = { name: 'Apollo', morph: null };
+    const parsed = parseBackup(JSON.stringify(b));
+    await restoreBackup(parsed);
+    const restored = (await db.pets.toArray())[0]!;
+    expect(restored.habitatTargets).toEqual({ warmMinC: 26 });
+    expect('warmMaxC' in restored.habitatTargets).toBe(false);
+    expect(restored.sire).toEqual({ name: 'Apollo' });
+    expect('morph' in restored.sire!).toBe(false);
+  });
+
+  it('gives a schema 1 pet habitatTargets {} when it is missing or null', async () => {
+    const ts = '2026-11-01T12:00:00.000Z';
+    const pet = (id: string, extra: object) => ({
+      id, name: id, species: 'Corn Snake', sex: 'female', origin: 'captive_bred', birthDateApprox: false,
+      feedingIntervalDays: 5, usualQuantity: 1, createdAt: ts, updatedAt: ts, ...extra,
+    });
+    const v1 = {
+      app: 'RepTender', schemaVersion: 1, exportedAt: ts,
+      tables: {
+        pets: [pet('missing', {}), pet('nulled', { habitatTargets: null })],
+        feedings: [], regurgitations: [], photos: [], foodItems: [],
+        settings: [{ id: 'settings', theme: 'dark', tempUnit: 'C', weightUnit: 'g', lengthUnit: 'cm' }],
+      },
+    };
+    const parsed = parseBackup(JSON.stringify(v1));
+    expect(parsed.tables.pets.map((p) => p.habitatTargets)).toEqual([{}, {}]);
+  });
+
+  it('rejects a photo whose data URL is not an image', async () => {
+    await seed();
+    const b = clone(await createBackup(now));
+    b.tables.photos[0]!.blob = 'data:text/html;base64,PHNjcmlwdD48L3NjcmlwdD4=';
+    const text = JSON.stringify(b);
+    expect(() => parseBackup(text)).toThrow(BackupError);
+    expect(() => parseBackup(text)).toThrow('"blob" is missing or not valid.');
+  });
+
+  it('exports a photo stored without an image type as an image, so its own import accepts it', async () => {
+    const id = await savePhoto({ blob: new Blob([new Uint8Array([1, 2])]), thumbBlob: new Blob([new Uint8Array([3])]), width: 1, height: 1 });
+    const backup = await createBackup(now);
+    expect(backup.tables.photos.find((p) => p.id === id)!.blob.startsWith('data:image/jpeg;base64,')).toBe(true);
+    expect(() => parseBackup(JSON.stringify(backup))).not.toThrow();
+  });
+});
