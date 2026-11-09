@@ -32,3 +32,26 @@
   min-width: 44px;
   min-height: 44px;
 }
+
+/* ---------- crash screen (Plan 3, spec §11) ---------- */
+.crash {
+  text-align: center;
+  padding-top: calc(env(safe-area-inset-top) + 48px);
+}
+.crash-icon {
+  font-size: 56px;
+}
+.crash .data-actions {
+  margin-top: 20px;
+  text-align: left;
+}
+.crash-details {
+  margin-top: 24px;
+  text-align: left;
+  color: var(--muted);
+}
+.crash-details pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+}
