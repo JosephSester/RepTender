@@ -4,9 +4,14 @@ import { getSettings, updateSettings } from '../../db/settings';
 import { listActivePets } from '../../db/pets';
 import { saveErrorText } from '../../db/ids';
 import type { ThemePref } from '../../domain/types';
+import { backupStatus } from '../../domain/backupStatus';
 import { Card } from '../../ui/Card';
 import { Segmented } from '../../ui/Segmented';
+import { useNow } from '../../ui/useNow';
 import { loadSampleData } from '../../dev/sampleData';
+import { ExportBackupButton } from '../backup/ExportBackupButton';
+import { ImportBackup } from '../backup/ImportBackup';
+import { useStorageWarning } from '../backup/useStorageWarning';
 import { RemindersButton } from '../reminders/RemindersButton';
 import { useScheduleSources } from '../schedule/scheduleSources';
 import { UnitsCard } from './UnitsCard';
@@ -21,9 +26,12 @@ export default function SettingsScreen() {
   const settings = useLiveQuery(() => getSettings(), []);
   const petCount = useLiveQuery(async () => (await listActivePets()).length, []);
   const sources = useScheduleSources();
+  const storageWarning = useStorageWarning();
+  const now = useNow();
   const [loading, setLoading] = useState(false);
   const [themeError, setThemeError] = useState<string>();
   if (!settings) return null;
+  const backup = backupStatus(settings.lastBackupAt, now);
 
   return (
     <>
@@ -57,8 +65,12 @@ export default function SettingsScreen() {
 
       <div className="label">Reminders &amp; data</div>
       <Card role="group" aria-label="Reminders & data">
+        {storageWarning && <p className="warn" style={{ marginTop: 0 }}>{storageWarning}</p>}
         <div className="data-actions">
           <RemindersButton sources={sources} label="📅 Add reminders to Calendar" />
+          <ExportBackupButton />
+          <p className={`setting-note ${backup.overdue ? 'warn' : 'muted'}`} style={{ marginTop: -4 }}>{backup.text}</p>
+          <ImportBackup />
         </div>
       </Card>
 
