@@ -12,8 +12,14 @@ import { dueStatus, lastMeal, nextFeedingDue, statusLabel } from '../../domain/f
 import { formatAge } from '../../domain/age';
 import type { ParentRef, Pet } from '../../domain/types';
 import { usePetDetail } from './usePetDetail';
+import { usePetHusbandry } from './usePetHusbandry';
+import { husbandryTiles, sizeStats, type TileKey } from './husbandrySummary';
 import { formatDateKey, formatDue } from './format';
 import LogFeedingSheet from '../feedings/LogFeedingSheet';
+import RegurgitationSheet from '../regurgitation/RegurgitationSheet';
+import LogPoopSheet from '../poop/LogPoopSheet';
+import LogShedSheet from '../sheds/LogShedSheet';
+import { useUnits } from '../settings/useUnits';
 import { TONE } from './PetsHome';
 import './profile.css';
 
@@ -22,12 +28,35 @@ const ORIGIN = { captive_bred: 'Captive bred', wild_caught: 'Wild caught', unkno
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const parentText = (p?: ParentRef) => [p?.name, p?.morph].filter(Boolean).join(' · ');
 
+type QuickSheet = 'feed' | 'regurg' | 'poop' | 'shed';
+
+/** Spec §5.2 item 5. */
+const QUICK_LOG: { sheet: QuickSheet; icon: string; label: string }[] = [
+  { sheet: 'feed', icon: '🍽️', label: 'Fed' },
+  { sheet: 'regurg', icon: '🤢', label: 'Regurg.' },
+  { sheet: 'poop', icon: '💩', label: 'Poop' },
+  { sheet: 'shed', icon: '🐍', label: 'Shed' },
+];
+
+/** Spec §5.2 item 6. */
+const TILES: { key: TileKey; path: string; icon: string; name: string }[] = [
+  { key: 'sheds', path: 'sheds', icon: '🐍', name: 'Sheds' },
+  { key: 'poop', path: 'poop', icon: '💩', name: 'Poop' },
+  { key: 'weight', path: 'weight', icon: '⚖️', name: 'Weight' },
+  { key: 'habitat', path: 'habitat', icon: '🌡️', name: 'Habitat' },
+  { key: 'care', path: 'care', icon: '🧽', name: 'Care tasks' },
+  { key: 'vet', path: 'vet', icon: '🩺', name: 'Vet visits' },
+  { key: 'notes', path: 'notes', icon: '📝', name: 'Notes' },
+];
+
 export default function PetProfile({ now: fixedNow }: { now?: Date }) {
   const { id } = useParams();
   const now = useNow(fixedNow);
   const detail = usePetDetail(id);
+  const husbandry = usePetHusbandry(id);
+  const units = useUnits();
   const [month, setMonth] = useState(() => ({ year: now.getFullYear(), month: now.getMonth() }));
-  const [logOpen, setLogOpen] = useState(false);
+  const [sheet, setSheet] = useState<QuickSheet | null>(null);
   const heroUrl = usePhotoUrl(detail?.pet?.photoId, 'full');
 
   if (!detail) return null;
@@ -40,6 +69,7 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
       </Card>
     );
   }
+  if (!husbandry || !units) return null;
 
   const due = nextFeedingDue(pet, feedings);
   const status = dueStatus(due, now);
@@ -59,6 +89,9 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
     });
   const chips = [SEX[pet.sex], pet.birthDate ? formatAge(pet.birthDate, now, pet.birthDateApprox) : '', ORIGIN[pet.origin]]
     .filter(Boolean);
+  const tiles = husbandryTiles(husbandry, units, now);
+  const size = sizeStats(husbandry.measurements, units);
+  const close = () => setSheet(null);
 
   return (
     <div className="profile">
@@ -92,7 +125,7 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
           </div>
           <Pill tone={TONE[status]}>{statusLabel(due, now)}</Pill>
         </div>
-        <button type="button" className="btn-primary" style={{ marginTop: 10 }} onClick={() => setLogOpen(true)}>
+        <button type="button" className="btn-primary" style={{ marginTop: 10 }} onClick={() => setSheet('feed')}>
           🍽️ Log feeding
         </button>
       </Card>
@@ -106,9 +139,30 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
         </div>
       </Card>
 
+      <div className="label">Quick log</div>
+      <div className="quick-log">
+        {QUICK_LOG.map((q) => (
+          <button key={q.sheet} type="button" onClick={() => setSheet(q.sheet)}>
+            <span aria-hidden="true">{q.icon}</span>
+            {q.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="label">Husbandry</div>
+      <div className="tiles">
+        {TILES.map((t) => (
+          <Link key={t.key} to={`/pets/${pet.id}/${t.path}`} className={t.key === 'notes' ? 'tile wide' : 'tile'}>
+            <span className="tile-ic" aria-hidden="true">{t.icon}</span>
+            <b>{t.name}</b>
+            <span className="muted">{tiles[t.key]}</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="stats">
-        <Stat label="Length" value="—" />
-        <Stat label="Weight" value="—" />
+        <Stat label="Length" value={size.length} />
+        <Stat label="Weight" value={size.weight} />
         <Stat label="Born" value={formatDateKey(pet.birthDate)} />
         <Stat label="Age" value={pet.birthDate ? formatAge(pet.birthDate, now, pet.birthDateApprox) : '—'} />
       </div>
@@ -134,13 +188,16 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
       )}
 
       <LogFeedingSheet
-        open={logOpen}
+        open={sheet === 'feed'}
         pet={pet}
         lastMealAt={lastMeal(feedings)?.at}
         currentDue={due}
         now={now}
-        onClose={() => setLogOpen(false)}
+        onClose={close}
       />
+      <RegurgitationSheet open={sheet === 'regurg'} pet={pet} now={now} onClose={close} />
+      <LogPoopSheet open={sheet === 'poop'} pet={pet} now={now} onClose={close} />
+      <LogShedSheet open={sheet === 'shed'} pet={pet} now={now} onClose={close} />
     </div>
   );
 }
