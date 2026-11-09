@@ -70,12 +70,31 @@ export async function unarchivePet(id: string): Promise<void> {
   if (!changed) throw new Error(`Pet ${id} not found`);
 }
 
+/** Deletes the pet and everything that belongs to it, including photos. "All pets" care tasks stay. */
 export async function deletePet(id: string): Promise<void> {
-  await db.transaction('rw', [db.pets, db.feedings, db.regurgitations, db.photos], async () => {
-    const pet = await db.pets.get(id);
-    await db.feedings.where('petId').equals(id).delete();
-    await db.regurgitations.where('petId').equals(id).delete();
-    if (pet?.photoId) await db.photos.delete(pet.photoId);
-    await db.pets.delete(id);
-  });
+  await db.transaction(
+    'rw',
+    [
+      db.pets, db.feedings, db.regurgitations, db.photos, db.sheds, db.poops, db.measurements,
+      db.habitatReadings, db.careTasks, db.careCompletions, db.vetVisits, db.notes,
+    ],
+    async () => {
+      const pet = await db.pets.get(id);
+      const visits = await db.vetVisits.where('petId').equals(id).toArray();
+      const taskIds = await db.careTasks.where('petId').equals(id).primaryKeys();
+      await db.feedings.where('petId').equals(id).delete();
+      await db.regurgitations.where('petId').equals(id).delete();
+      await db.sheds.where('petId').equals(id).delete();
+      await db.poops.where('petId').equals(id).delete();
+      await db.measurements.where('petId').equals(id).delete();
+      await db.habitatReadings.where('petId').equals(id).delete();
+      await db.notes.where('petId').equals(id).delete();
+      await db.vetVisits.where('petId').equals(id).delete();
+      if (taskIds.length > 0) await db.careCompletions.where('taskId').anyOf(taskIds).delete();
+      await db.careTasks.bulkDelete(taskIds);
+      const photoIds = [pet?.photoId, ...visits.flatMap((v) => v.photoIds)].filter((p): p is string => !!p);
+      await db.photos.bulkDelete(photoIds);
+      await db.pets.delete(id);
+    },
+  );
 }

@@ -1,6 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Feeding, FoodItem, Pet, Photo, Regurgitation, Settings } from '../domain/types';
+import type {
+  CareCompletion, CareTask, Feeding, FoodItem, HabitatReading, Measurement, Note, Pet, Photo, Poop,
+  Regurgitation, Settings, Shed, VetVisit,
+} from '../domain/types';
 import { newId, nowIso } from './ids';
+
+export const SCHEMA_VERSION = 2;
 
 export const DEFAULT_FOOD_ITEMS = [
   'Pinky mouse', 'Fuzzy mouse', 'Hopper mouse', 'Adult mouse', 'Rat pup',
@@ -18,6 +23,14 @@ export class RepTenderDB extends Dexie {
   photos!: EntityTable<Photo, 'id'>;
   foodItems!: EntityTable<FoodItem, 'id'>;
   settings!: EntityTable<Settings, 'id'>;
+  sheds!: EntityTable<Shed, 'id'>;
+  poops!: EntityTable<Poop, 'id'>;
+  measurements!: EntityTable<Measurement, 'id'>;
+  habitatReadings!: EntityTable<HabitatReading, 'id'>;
+  careTasks!: EntityTable<CareTask, 'id'>;
+  careCompletions!: EntityTable<CareCompletion, 'id'>;
+  vetVisits!: EntityTable<VetVisit, 'id'>;
+  notes!: EntityTable<Note, 'id'>;
 
   constructor(name = 'reptender') {
     super(name);
@@ -29,6 +42,25 @@ export class RepTenderDB extends Dexie {
       foodItems: 'id, &name',
       settings: 'id',
     });
+    // Plan 2: husbandry tables. Spec §6.2: [petId+at] on time-based logs, [petId+date] on date-based ones.
+    this.version(2)
+      .stores({
+        sheds: 'id, petId, [petId+date]',
+        poops: 'id, petId, [petId+at]',
+        measurements: 'id, petId, [petId+date]',
+        habitatReadings: 'id, petId, [petId+at]',
+        careTasks: 'id, petId',
+        careCompletions: 'id, taskId, [taskId+at]',
+        vetVisits: 'id, petId, [petId+date]',
+        notes: 'id, petId, [petId+at]',
+      })
+      .upgrade(async (tx) => {
+        // v1 → v2 only adds tables; existing rows are untouched. The Habitat screen edits
+        // pet.habitatTargets in place, so make sure every pet has the object.
+        await tx.table('pets').toCollection().modify((pet: Partial<Pet>) => {
+          if (!pet.habitatTargets) pet.habitatTargets = {};
+        });
+      });
     this.on('populate', (tx) => {
       const ts = nowIso();
       tx.table('foodItems').bulkAdd(
