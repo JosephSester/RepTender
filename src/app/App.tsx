@@ -15,6 +15,7 @@ import VetScreen from '../features/vet/VetScreen';
 import NotesScreen from '../features/notes/NotesScreen';
 import ScheduleScreen from '../features/schedule/ScheduleScreen';
 import AddScreen from '../features/add/AddScreen';
+import AppBadge from '../features/schedule/AppBadge';
 
 export function AppRoutes() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <HashRouter>
       <ThemeSync />
+      <AppBadge />
       <AppRoutes />
     </HashRouter>
   );

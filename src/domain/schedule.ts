@@ -74,6 +74,11 @@ export function todayItems(feedings: readonly FeedingSource[], care: readonly Ca
     .sort(byUrgency);
 }
 
+/** Spec §8 app badge: the late or due-today items still open on today's checklist. */
+export function badgeCount(feedings: readonly FeedingSource[], care: readonly CareSource[], now: Date): number {
+  return todayItems(feedings, care, now).filter((i) => !i.done).length;
+}
+
 export interface DayGroup {
   day: string; // yyyy-MM-dd
   items: ScheduleItem[];
