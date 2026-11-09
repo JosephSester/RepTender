@@ -54,8 +54,11 @@ export default function SettingsScreen() {
             disabled={loading}
             onClick={async () => {
               setLoading(true);
-              await loadSampleData();
-              setLoading(false);
+              try {
+                await loadSampleData();
+              } finally {
+                setLoading(false);
+              }
             }}
           >
             Load sample pets

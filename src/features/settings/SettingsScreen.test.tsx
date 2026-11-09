@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SettingsScreen from './SettingsScreen';
@@ -26,4 +26,10 @@ it('loads sample pets in development builds', async () => {
   renderSettings();
   await userEvent.click(await screen.findByRole('button', { name: 'Load sample pets' }));
   await vi.waitFor(async () => expect(await listActivePets()).toHaveLength(4));
-});
+  // loadSampleData keeps writing husbandry history after the pets exist; wait for it
+  // to finish so setLoading(false) doesn't fire after the test environment is torn down.
+  await waitFor(
+    () => expect(screen.getByRole('button', { name: 'Load sample pets' })).toBeEnabled(),
+    { timeout: 10000 },
+  );
+}, 20000);
