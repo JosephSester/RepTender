@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, parseISO } from 'date-fns';
+import { addDays, differenceInCalendarDays, isValid, parseISO } from 'date-fns';
 import type { Feeding, Pet } from './types';
 import { atTime, DEFAULT_FEED_TIME } from './dates';
 
@@ -9,6 +9,12 @@ export const MAX_PUSH_BACK_DAYS = 365;
 
 export const isValidPushBackDays = (days: number): boolean =>
   Number.isInteger(days) && days >= 1 && days <= MAX_PUSH_BACK_DAYS;
+
+/** Upper bound for a pet's feeding interval, for the same reason as MAX_PUSH_BACK_DAYS. */
+export const MAX_FEEDING_INTERVAL_DAYS = 365;
+
+export const isValidFeedingInterval = (days: number): boolean =>
+  Number.isInteger(days) && days >= 1 && days <= MAX_FEEDING_INTERVAL_DAYS;
 
 type SchedulePet = Pick<Pet, 'feedingIntervalDays' | 'usualFeedTime' | 'nextFeedingOverride'>;
 
@@ -32,6 +38,7 @@ export function nextFeedingDue(pet: SchedulePet, feedings: readonly Feeding[]): 
 
 export function dueStatus(due: Date | null, now: Date): DueStatus {
   if (!due) return 'today';
+  if (!isValid(due)) return 'soon'; // an overflowed due date is "far away", never late
   const days = differenceInCalendarDays(due, now);
   if (days < 0) return 'late';
   return days === 0 ? 'today' : 'soon';
@@ -39,6 +46,7 @@ export function dueStatus(due: Date | null, now: Date): DueStatus {
 
 export function statusLabel(due: Date | null, now: Date): string {
   if (!due) return 'No feedings yet';
+  if (!isValid(due)) return '—';
   const days = differenceInCalendarDays(due, now);
   if (days < 0) return `${-days} day${days === -1 ? '' : 's'} late`;
   if (days === 0) return 'Today';

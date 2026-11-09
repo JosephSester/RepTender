@@ -8,6 +8,20 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Keep the app chunk small (it was 506 kB): React and the other libraries get their own
+        // chunks, which also stay cached on the phone when only app code changes.
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
+            { name: 'vendor', test: /node_modules[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

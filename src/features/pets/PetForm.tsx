@@ -5,6 +5,7 @@ import { archivePet, createPet, deletePet, getPet, updatePet } from '../../db/pe
 import { deletePhoto, savePhoto } from '../../db/photos';
 import { listFoodItems } from '../../db/foodItems';
 import { ValidationError } from '../../db/ids';
+import { MAX_FEEDING_INTERVAL_DAYS } from '../../domain/feeding';
 import { photoFromFile } from '../../lib/image';
 import { usePhotoUrl } from '../../ui/usePhotoUrl';
 import { speciesEmoji } from '../../ui/PetAvatar';
@@ -138,7 +139,9 @@ export default function PetForm() {
       </label>
 
       <div className="label">Feeding</div>
-      <Field label="Feed every (days)"><input type="number" inputMode="numeric" min={1} {...text('feedingIntervalDays')} /></Field>
+      <Field label="Feed every (days)">
+        <input type="number" inputMode="numeric" min={1} max={MAX_FEEDING_INTERVAL_DAYS} {...text('feedingIntervalDays')} />
+      </Field>
       <Field label="Usual food">
         <select value={form.usualFoodItem} onChange={(e) => set('usualFoodItem', e.target.value)}>
           <option value="">None</option>

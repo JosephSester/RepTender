@@ -14,7 +14,7 @@ import type { ParentRef, Pet } from '../../domain/types';
 import { usePetDetail } from './usePetDetail';
 import { usePetHusbandry } from './usePetHusbandry';
 import { husbandryTiles, sizeStats, type TileKey } from './husbandrySummary';
-import { formatDateKey, formatDue } from './format';
+import { formatDateKey, formatDue, formatMoney } from './format';
 import LogFeedingSheet from '../feedings/LogFeedingSheet';
 import RegurgitationSheet from '../regurgitation/RegurgitationSheet';
 import LogPoopSheet from '../poop/LogPoopSheet';
@@ -174,7 +174,7 @@ export default function PetProfile({ now: fixedNow }: { now?: Date }) {
           <Card>
             {pet.acquiredFrom && <b>{pet.acquiredFrom}</b>}
             <div className="muted">
-              {[pet.acquiredDate && `Bought ${formatDateKey(pet.acquiredDate)}`, pet.pricePaid !== undefined && `$${pet.pricePaid}`]
+              {[pet.acquiredDate && `Bought ${formatDateKey(pet.acquiredDate)}`, pet.pricePaid !== undefined && formatMoney(pet.pricePaid)]
                 .filter(Boolean).join(' · ')}
             </div>
           </Card>

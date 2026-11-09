@@ -1,8 +1,9 @@
-import { differenceInCalendarDays, format } from 'date-fns';
-import { parseDateKey } from '../../domain/dates';
+import { differenceInCalendarDays, format, isValid } from 'date-fns';
+import { isDateKey, parseDateKey } from '../../domain/dates';
 
 export function formatDue(due: Date | null, now: Date): string {
   if (!due) return 'No feedings yet';
+  if (!isValid(due)) return '—'; // format() throws on an Invalid Date (e.g. an overflowed interval)
   const days = differenceInCalendarDays(due, now);
   const time = format(due, 'h:mm a');
   if (days === 0) return `Today · ${time}`;
@@ -11,7 +12,13 @@ export function formatDue(due: Date | null, now: Date): string {
 }
 
 export function formatDateKey(key?: string): string {
-  return key ? format(parseDateKey(key), 'MMM d, yyyy') : '—';
+  return key && isDateKey(key) ? format(parseDateKey(key), 'MMM d, yyyy') : '—';
+}
+
+/** "$65" for whole amounts, "$85.50" when there are cents. */
+export function formatMoney(n: number): string {
+  const cents = Math.round(n * 100);
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }
 
 export const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;

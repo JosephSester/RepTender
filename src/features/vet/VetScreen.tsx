@@ -7,7 +7,7 @@ import { Card } from '../../ui/Card';
 import { Sheet } from '../../ui/Sheet';
 import { FullPhoto, PhotoThumb } from '../../ui/PhotoThumb';
 import { useNow } from '../../ui/useNow';
-import { formatDateKey, plural } from '../pets/format';
+import { formatDateKey, formatMoney, plural } from '../pets/format';
 import { confirmDelete, PetNotFound, SubScreenHeader, useRoutePet } from '../pets/subScreen';
 import { clinicInfo, telHref, upcomingAppointment } from './vetModel';
 import VetVisitSheet from './VetVisitSheet';
@@ -62,7 +62,7 @@ export default function VetScreen({ now: fixedNow }: { now?: Date }) {
           {v.notes && <div style={{ marginTop: 2 }}>{v.notes}</div>}
           {(v.cost !== undefined || v.photoIds.length > 0) && (
             <div className="muted">
-              {[v.cost !== undefined && `$${v.cost}`, v.photoIds.length > 0 && plural(v.photoIds.length, 'photo')]
+              {[v.cost !== undefined && formatMoney(v.cost), v.photoIds.length > 0 && plural(v.photoIds.length, 'photo')]
                 .filter(Boolean)
                 .join(' · ')}
             </div>

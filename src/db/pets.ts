@@ -1,5 +1,6 @@
 import type { Pet } from '../domain/types';
 import { DEFAULT_FEED_TIME } from '../domain/dates';
+import { isValidFeedingInterval, MAX_FEEDING_INTERVAL_DAYS } from '../domain/feeding';
 import { db } from './db';
 import { newId, nowIso, ValidationError } from './ids';
 
@@ -10,8 +11,8 @@ export type PetInput = Pick<Pet, Required3> &
 function validate(p: Partial<PetInput>): void {
   if (p.name !== undefined && !p.name.trim()) throw new ValidationError('Name is required');
   if (p.species !== undefined && !p.species.trim()) throw new ValidationError('Species is required');
-  if (p.feedingIntervalDays !== undefined && !(Number.isInteger(p.feedingIntervalDays) && p.feedingIntervalDays >= 1)) {
-    throw new ValidationError('Feed every must be at least 1 day');
+  if (p.feedingIntervalDays !== undefined && !isValidFeedingInterval(p.feedingIntervalDays)) {
+    throw new ValidationError(`Feed every must be 1 to ${MAX_FEEDING_INTERVAL_DAYS} days`);
   }
   if (p.usualQuantity !== undefined && !(Number.isInteger(p.usualQuantity) && p.usualQuantity >= 1)) {
     throw new ValidationError('Usual quantity must be at least 1');
