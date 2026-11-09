@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { format, parseISO } from 'date-fns';
 import type { Pet } from '../../domain/types';
 import { combineDateTime, dateKey } from '../../domain/dates';
-import { DEFAULT_PUSH_BACK_DAYS, nextFeedingDue, pushBackOverride } from '../../domain/feeding';
+import { DEFAULT_PUSH_BACK_DAYS, isValidPushBackDays, MAX_PUSH_BACK_DAYS, nextFeedingDue, pushBackOverride } from '../../domain/feeding';
 import { listFeedings, listRegurgitations, logRegurgitation } from '../../db/feedings';
 import { saveErrorText } from '../../db/ids';
 import { Sheet } from '../../ui/Sheet';
@@ -50,7 +50,7 @@ function RegurgitationForm({ pet, onClose, now: fixedNow }: Props) {
   const selected = meals.find((m) => m.id === picked) ?? meals[0];
   const foundAt = combineDateTime(date, time);
   const days = Number(pushBackDays);
-  const daysValid = !pushBack || (Number.isInteger(days) && days >= 1);
+  const daysValid = !pushBack || isValidPushBackDays(days);
   const beforeMeal = !!foundAt && !!selected && foundAt.getTime() < Date.parse(selected.at);
   const canSave = !!selected && !!foundAt && daysValid && !beforeMeal && !saving;
   let preview: Date | null = null;
@@ -125,9 +125,10 @@ function RegurgitationForm({ pet, onClose, now: fixedNow }: Props) {
         </Field>
         {pushBack && (
           <Field label="Push back (days)">
-            <input type="number" inputMode="numeric" min={1} value={pushBackDays} onChange={(e) => setPushBackDays(e.target.value)} />
+            <input type="number" inputMode="numeric" min={1} max={MAX_PUSH_BACK_DAYS} value={pushBackDays} onChange={(e) => setPushBackDays(e.target.value)} />
           </Field>
         )}
+        {!daysValid && <div className="form-error">{`Push back must be a whole number from 1 to ${MAX_PUSH_BACK_DAYS} days.`}</div>}
         <div className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
           Keepers usually wait 10–14 days, then offer a smaller meal.
         </div>

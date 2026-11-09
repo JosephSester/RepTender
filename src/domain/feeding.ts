@@ -4,6 +4,11 @@ import { atTime, DEFAULT_FEED_TIME } from './dates';
 
 export type DueStatus = 'late' | 'today' | 'soon';
 export const DEFAULT_PUSH_BACK_DAYS = 10;
+/** Upper bound for a push-back; larger counts overflow the Date range and crash rendering. */
+export const MAX_PUSH_BACK_DAYS = 365;
+
+export const isValidPushBackDays = (days: number): boolean =>
+  Number.isInteger(days) && days >= 1 && days <= MAX_PUSH_BACK_DAYS;
 
 type SchedulePet = Pick<Pet, 'feedingIntervalDays' | 'usualFeedTime' | 'nextFeedingOverride'>;
 

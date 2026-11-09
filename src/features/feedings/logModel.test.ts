@@ -17,6 +17,11 @@ describe('previewNextDue', () => {
   it('regurgitated with push-back: found + days', () => {
     expect(previewNextDue({ ...base, outcome: 'regurgitated' })!.getTime()).toBe(new Date(2026, 10, 18, 18, 0).getTime());
   });
+  it('regurgitated with an out-of-range push-back previews nothing instead of throwing', () => {
+    for (const pushBackDays of [0, 366, 999_999_999, NaN]) {
+      expect(previewNextDue({ ...base, outcome: 'regurgitated', pushBackDays })).toBeNull();
+    }
+  });
   it('regurgitated without push-back: same as ate', () => {
     expect(previewNextDue({ ...base, outcome: 'regurgitated', pushBack: false })!.getTime()).toBe(
       new Date(2026, 10, 13, 18, 0).getTime(),

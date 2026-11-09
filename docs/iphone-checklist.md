@@ -17,3 +17,4 @@ Run on the iPhone 17 after each deploy. Tick every line before telling the user 
 13. **Care tasks**: add Spot clean from the suggestions. On the **Schedule** tab, tick it: it shows ✓ and "N of M done" goes up. Tick a feeding: the Log a Feeding sheet opens.
 14. **Add** tab: pick a pet, log a Note. It appears on that pet's Notes screen.
 15. Archive a pet (Edit → Archive pet). On Home, **Show archived** → **Unarchive** brings it back with its history.
+16. **First database upgrade (Plan 2 update):** after updating from the previous version, open each existing pet: all pets, their feedings, the calendar marks and any push-back are still there, and Sheds, Habitat and Care open without a white screen. (Screenshot each pet's profile and feeding history before updating, as a record.)

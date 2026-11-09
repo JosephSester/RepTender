@@ -2,6 +2,7 @@ import Dexie from 'dexie';
 import { isSameDay, parseISO } from 'date-fns';
 import type { CareCompletion, CareTask } from '../domain/types';
 import { isTimeOfDay } from '../domain/dates';
+import { MAX_CARE_INTERVAL_DAYS } from '../domain/care';
 import { db } from './db';
 import { newId, nowIso, requireDateTime, ValidationError } from './ids';
 
@@ -17,6 +18,9 @@ function validate(p: Partial<CareTaskInput>): void {
   if (p.name !== undefined && !p.name.trim()) throw new ValidationError('Name the task');
   if (p.intervalDays !== undefined && !(Number.isInteger(p.intervalDays) && p.intervalDays >= 1)) {
     throw new ValidationError('Repeat every must be at least 1 day');
+  }
+  if (p.intervalDays !== undefined && p.intervalDays > MAX_CARE_INTERVAL_DAYS) {
+    throw new ValidationError(`Repeat every can be at most ${MAX_CARE_INTERVAL_DAYS} days`);
   }
   if (p.timeOfDay && !isTimeOfDay(p.timeOfDay)) throw new ValidationError('Pick a time of day');
 }

@@ -139,6 +139,14 @@ describe('feedings', () => {
         regurgitated: { foundAt: at(3), pushBackDays: 0 },
       }),
     ).rejects.toBeInstanceOf(ValidationError);
+    for (const pushBackDays of [366, 1e9]) {
+      await expect(
+        logFeeding({
+          petId: p.id, at: at(3), foodItem: 'Pinky mouse', quantity: 1, outcome: 'ate',
+          regurgitated: { foundAt: at(3), pushBackDays },
+        }),
+      ).rejects.toThrow('1 to 365 days');
+    }
     expect(await db.feedings.count()).toBe(0);
   });
 

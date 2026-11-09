@@ -102,6 +102,21 @@ describe('RegurgitationSheet', () => {
     expect(screen.getByRole('button', { name: 'Save regurgitation' })).toBeDisabled();
   });
 
+  it('survives a huge push-back while typing, with an inline reason and Save disabled', async () => {
+    await meal(3);
+    open();
+    await screen.findByRole('button', { name: /Pinky mouse$/ });
+    const days = screen.getByLabelText('Push back (days)');
+    await userEvent.clear(days);
+    await userEvent.type(days, '999999999');
+    expect(screen.getByRole('dialog', { name: 'Log regurgitation' })).toBeInTheDocument();
+    expect(screen.getByText('Push back must be a whole number from 1 to 365 days.')).toBeInTheDocument();
+    expect(screen.getByText('Next feeding → —')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save regurgitation' })).toBeDisabled();
+    fireEvent.change(days, { target: { value: '365' } });
+    expect(screen.getByRole('button', { name: 'Save regurgitation' })).toBeEnabled();
+  });
+
   it('says when there is no eaten meal to pick', async () => {
     await meal(3, 'refused');
     open();

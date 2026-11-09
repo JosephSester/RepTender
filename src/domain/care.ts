@@ -2,6 +2,9 @@ import { addDays, isSameDay, parseISO, startOfDay } from 'date-fns';
 import type { CareCompletion, CareTask } from './types';
 import { atTime } from './dates';
 
+/** Upper bound for a repeat interval; larger counts overflow the Date range and crash rendering. */
+export const MAX_CARE_INTERVAL_DAYS = 3650;
+
 /** Spec §5.10 starter suggestions (one tap to add). */
 export const CARE_SUGGESTIONS: readonly { name: string; intervalDays: number }[] = [
   { name: 'Spot clean', intervalDays: 1 },

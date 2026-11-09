@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react';
 import type { CareTask, Pet } from '../../domain/types';
 import { archiveCareTask, createCareTask, updateCareTask } from '../../db/care';
 import { saveErrorText } from '../../db/ids';
+import { MAX_CARE_INTERVAL_DAYS } from '../../domain/care';
 import { Sheet } from '../../ui/Sheet';
 import { Segmented } from '../../ui/Segmented';
-import { Field } from '../../ui/Field';
+import { ClearButton, Field } from '../../ui/Field';
 import { SheetHeader } from '../../ui/SheetHeader';
 
 interface Props {
@@ -28,16 +29,19 @@ function CareTaskForm({ pet, onClose, task }: Props) {
   const [scope, setScope] = useState<Scope>(task && !task.petId ? 'all' : 'pet');
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const interval = Number(intervalDays);
+  const intervalOk = Number.isInteger(interval) && interval >= 1 && interval <= MAX_CARE_INTERVAL_DAYS;
   const title = task ? 'Edit care task' : 'New care task';
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!intervalOk) return;
     setError(undefined);
     setSaving(true);
     const input = {
       petId: scope === 'pet' ? pet.id : undefined,
       name,
-      intervalDays: Number(intervalDays),
+      intervalDays: interval,
       timeOfDay: time || undefined,
     };
     try {
@@ -69,11 +73,13 @@ function CareTaskForm({ pet, onClose, task }: Props) {
           <input value={name} placeholder="Spot clean" onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Repeat every (days)">
-          <input type="number" inputMode="numeric" min={1} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} />
+          <input type="number" inputMode="numeric" min={1} max={MAX_CARE_INTERVAL_DAYS} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} />
         </Field>
+        {!intervalOk && <div className="form-error">{`Repeat every must be a whole number from 1 to ${MAX_CARE_INTERVAL_DAYS} days.`}</div>}
         <Field label="Time of day">
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         </Field>
+        {time !== '' && <ClearButton label="Clear time" onClick={() => setTime('')} />}
         <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Optional. Leave it empty for any time.</div>
         <div className="label">For</div>
         <Segmented<Scope>
@@ -82,7 +88,7 @@ function CareTaskForm({ pet, onClose, task }: Props) {
           value={scope}
           onChange={setScope}
         />
-        <button type="submit" className="btn-primary" style={{ marginTop: 12 }} disabled={saving}>Save task</button>
+        <button type="submit" className="btn-primary" style={{ marginTop: 12 }} disabled={saving || !intervalOk}>Save task</button>
         {task && (
           <button type="button" className="btn-ghost btn-danger" style={{ marginTop: 8 }} onClick={onRemove}>Remove task</button>
         )}

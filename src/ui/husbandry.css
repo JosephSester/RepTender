@@ -45,6 +45,13 @@
   font-weight: 800;
   flex-shrink: 0;
   padding: 0;
+  position: relative;
+}
+/* Invisible 44px tap area around the 28px circle. */
+.check::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 .check[aria-pressed='true'] {
   background: var(--moss);
@@ -207,6 +214,12 @@
   background: var(--text);
   color: var(--bg);
   font-size: 11px;
+}
+/* Invisible 44px tap area around the 24px circle. */
+.thumb-remove::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
 }
 .photo-full {
   display: block;

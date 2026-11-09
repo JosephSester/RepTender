@@ -50,6 +50,16 @@ describe('PoopScreen', () => {
     expect(items[1]).toHaveTextContent('Oct 26 · 4 days after Oct 22 meal');
   });
 
+  it('a double tap on Log poop now logs only one poop', async () => {
+    renderPoop();
+    const button = await screen.findByRole('button', { name: 'Log poop now' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await vi.waitFor(async () => expect(await listPoops(petId)).toHaveLength(3));
+    await vi.waitFor(() => expect(button).toBeEnabled());
+    expect(await listPoops(petId)).toHaveLength(3);
+  });
+
   it('logs a poop in one tap with the chosen kind', async () => {
     renderPoop();
     await userEvent.click(await screen.findByRole('radio', { name: 'Runny' }));

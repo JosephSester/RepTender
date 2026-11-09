@@ -6,7 +6,7 @@ import { logShed } from '../../db/sheds';
 import { saveErrorText } from '../../db/ids';
 import { Sheet } from '../../ui/Sheet';
 import { Segmented } from '../../ui/Segmented';
-import { Field } from '../../ui/Field';
+import { ClearButton, Field } from '../../ui/Field';
 import { SheetHeader } from '../../ui/SheetHeader';
 
 interface Props {
@@ -30,6 +30,7 @@ function ShedForm({ pet, onClose, now: fixedNow }: Props) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const valid = isDateKey(date) && (inBlue === '' || isDateKey(inBlue));
+  const blueAfterShed = isDateKey(date) && isDateKey(inBlue) && inBlue > date;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -58,7 +59,11 @@ function ShedForm({ pet, onClose, now: fixedNow }: Props) {
         <Field label="Went into blue">
           <input type="date" value={inBlue} onChange={(e) => setInBlue(e.target.value)} />
         </Field>
+        {inBlue !== '' && <ClearButton label="Clear blue date" onClick={() => setInBlue('')} />}
         <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Optional: the day its eyes turned cloudy.</div>
+        {blueAfterShed && (
+          <div className="form-error">The blue date is after the shed date. Pick an earlier day, or tap Clear blue date.</div>
+        )}
         <Field label="Notes" stack>
           <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>

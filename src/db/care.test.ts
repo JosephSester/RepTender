@@ -33,6 +33,9 @@ it('validates tasks', async () => {
   await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 0 })).rejects.toBeInstanceOf(ValidationError);
   await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 1.5 })).rejects.toBeInstanceOf(ValidationError);
   await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 1, timeOfDay: '8am' })).rejects.toBeInstanceOf(ValidationError);
+  await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 3651 })).rejects.toThrow('at most 3650');
+  await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 1e9 })).rejects.toBeInstanceOf(ValidationError);
+  await expect(createCareTask({ petId: noodle, name: 'Mist', intervalDays: 3650 })).resolves.toMatchObject({ intervalDays: 3650 });
   await expect(createCareTask({ petId: 'missing', name: 'Mist', intervalDays: 1 })).rejects.toThrow('not found');
 });
 

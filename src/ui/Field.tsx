@@ -10,6 +10,15 @@ export function Field({ label, stack = false, children }: { label: string; stack
   );
 }
 
+/** iOS date and time inputs have no clear control of their own: show this while the field has a value. */
+export function ClearButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className="btn-ghost" style={{ marginBottom: 8 }} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
+
 interface DateTimeFieldsProps {
   date: string;
   time: string;

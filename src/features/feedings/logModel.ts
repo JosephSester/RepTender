@@ -1,7 +1,7 @@
 import { addDays, differenceInCalendarDays, format, isValid } from 'date-fns';
 import type { Pet } from '../../domain/types';
 import { atTime, DEFAULT_FEED_TIME } from '../../domain/dates';
-import { pushBackOverride } from '../../domain/feeding';
+import { isValidPushBackDays, pushBackOverride } from '../../domain/feeding';
 
 export type LogOutcome = 'ate' | 'refused' | 'regurgitated';
 
@@ -17,8 +17,9 @@ export function previewNextDue(args: {
 }): Date | null {
   const { pet, outcome, at, foundAt, pushBack, pushBackDays, currentDue } = args;
   if (outcome === 'refused') return currentDue;
-  if (outcome === 'regurgitated' && pushBack && pushBackDays >= 1) {
-    if (!isValid(foundAt)) return null; // pushBackOverride would throw on an invalid date
+  if (outcome === 'regurgitated' && pushBack) {
+    // pushBackOverride throws on an invalid date, and on a day count that overflows the Date range.
+    if (!isValid(foundAt) || !isValidPushBackDays(pushBackDays)) return null;
     return new Date(pushBackOverride(foundAt, pet, pushBackDays));
   }
   return atTime(addDays(at, pet.feedingIntervalDays), pet.usualFeedTime ?? DEFAULT_FEED_TIME);

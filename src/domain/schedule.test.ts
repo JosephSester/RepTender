@@ -72,4 +72,10 @@ describe('comingUp', () => {
       ['2026-11-15', ['Deep clean']],
     ]);
   });
+
+  it('skips an item whose due date overflowed instead of throwing', () => {
+    const huge: CareSource[] = [...care, { task: task('huge', 'Huge', 1_000_000_000, noodle.id), pet: noodle, completions: [] }];
+    expect(() => comingUp(feedings, huge, now)).not.toThrow();
+    expect(comingUp(feedings, huge, now).flatMap((g) => g.items.map((i) => i.title))).not.toContain('Huge');
+  });
 });

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
 import type { Pet } from '../../domain/types';
 import { atTime, dateKey, parseDateKey } from '../../domain/dates';
-import { DEFAULT_PUSH_BACK_DAYS } from '../../domain/feeding';
+import { DEFAULT_PUSH_BACK_DAYS, isValidPushBackDays, MAX_PUSH_BACK_DAYS } from '../../domain/feeding';
 import { logFeeding } from '../../db/feedings';
 import { addFoodItem, listFoodItems } from '../../db/foodItems';
 import { ValidationError } from '../../db/ids';
@@ -64,7 +64,8 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
 
   const at = atTime(parseDateKey(date), time);
   const foundAt = atTime(parseDateKey(foundDate), foundTime);
-  const datesValid = isValid(at) && (outcome !== 'regurgitated' || isValid(foundAt));
+  const pushDaysValid = outcome !== 'regurgitated' || !pushBack || isValidPushBackDays(Number(pushBackDays));
+  const datesValid = isValid(at) && (outcome !== 'regurgitated' || isValid(foundAt)) && pushDaysValid;
   const preview = previewNextDue({
     pet, outcome, at, foundAt, pushBack, pushBackDays: Number(pushBackDays), currentDue,
   });
@@ -159,9 +160,10 @@ function LogFeedingForm({ pet, open, onClose, lastMealAt, currentDue, now: fixed
             {pushBack && (
               <label className="field">
                 <span>Push back (days)</span>
-                <input type="number" inputMode="numeric" min={1} value={pushBackDays} onChange={(e) => setPushBackDays(e.target.value)} />
+                <input type="number" inputMode="numeric" min={1} max={MAX_PUSH_BACK_DAYS} value={pushBackDays} onChange={(e) => setPushBackDays(e.target.value)} />
               </label>
             )}
+            {!pushDaysValid && <div className="form-error">{`Push back must be a whole number from 1 to ${MAX_PUSH_BACK_DAYS} days.`}</div>}
             <div className="muted" style={{ fontSize: 13 }}>Keepers usually wait 10–14 days, then offer a smaller meal.</div>
           </div>
         )}

@@ -91,6 +91,33 @@ describe('CareTasksScreen', () => {
     expect(saved!.petId).toBeUndefined();
   });
 
+  it('clears a time of day again (iOS time inputs have no clear control)', async () => {
+    const t = await createCareTask({ petId: noodle, name: 'Check temps', intervalDays: 1, timeOfDay: '08:00' });
+    renderCare();
+    await userEvent.click(within(await screen.findByRole('article', { name: 'Check temps' })).getByRole('button', { name: 'Edit' }));
+    const sheet = screen.getByRole('dialog', { name: 'Edit care task' });
+    expect(within(sheet).getByLabelText('Time of day')).toHaveValue('08:00');
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Clear time' }));
+    expect(within(sheet).getByLabelText('Time of day')).toHaveValue('');
+    expect(within(sheet).queryByRole('button', { name: 'Clear time' })).toBeNull();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save task' }));
+    await vi.waitFor(async () => expect((await db.careTasks.get(t.id))!.timeOfDay).toBeUndefined());
+  });
+
+  it('blocks an out-of-range repeat with an inline reason and does not crash', async () => {
+    renderCare();
+    await userEvent.click(await screen.findByRole('button', { name: 'New care task' }));
+    const sheet = screen.getByRole('dialog', { name: 'New care task' });
+    await userEvent.type(within(sheet).getByLabelText('Name'), 'Mist');
+    await userEvent.clear(within(sheet).getByLabelText('Repeat every (days)'));
+    await userEvent.type(within(sheet).getByLabelText('Repeat every (days)'), '999999999');
+    expect(within(sheet).getByText('Repeat every must be a whole number from 1 to 3650 days.')).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Save task' })).toBeDisabled();
+    expect(await listCareTasks()).toHaveLength(0);
+    fireEvent.change(within(sheet).getByLabelText('Repeat every (days)'), { target: { value: '3650' } });
+    expect(within(sheet).getByRole('button', { name: 'Save task' })).toBeEnabled();
+  });
+
   it('shows All-pets tasks on every pet', async () => {
     await createCareTask({ name: 'Fresh water', intervalDays: 2 });
     renderCare();

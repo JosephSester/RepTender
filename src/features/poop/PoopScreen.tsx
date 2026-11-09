@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format, parseISO } from 'date-fns';
 import type { PoopKind } from '../../domain/types';
@@ -27,6 +27,8 @@ export default function PoopScreen({ now: fixedNow }: { now?: Date }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<PoopKind>('normal');
   const [error, setError] = useState<string>();
+  const [logging, setLogging] = useState(false);
+  const inFlight = useRef(false);
 
   if (pet === undefined) return null;
   if (pet === null) return <PetNotFound />;
@@ -37,11 +39,18 @@ export default function PoopScreen({ now: fixedNow }: { now?: Date }) {
   const gap = typicalGap(poops, feedings);
 
   const logNow = async () => {
+    if (inFlight.current) return; // a double tap must not log two poops
+    inFlight.current = true;
+    setLogging(true);
     setError(undefined);
     try {
-      await logPoop({ petId: pet.id, at: now.toISOString(), kind });
+      // The time of the tap, not the minute-old clock of the last render.
+      await logPoop({ petId: pet.id, at: (fixedNow ?? new Date()).toISOString(), kind });
     } catch (err) {
       setError(saveErrorText(err));
+    } finally {
+      inFlight.current = false;
+      setLogging(false);
     }
   };
 
@@ -70,7 +79,7 @@ export default function PoopScreen({ now: fixedNow }: { now?: Date }) {
       <Card>
         <Segmented label="What did it look like?" options={POOP_KINDS} value={kind} onChange={setKind} />
         {error && <div role="alert" className="form-error">{error}</div>}
-        <button type="button" className="btn-primary" style={{ marginTop: 10 }} onClick={logNow}>
+        <button type="button" className="btn-primary" style={{ marginTop: 10 }} disabled={logging} onClick={logNow}>
           <span aria-hidden="true">💩 </span>Log poop now
         </button>
       </Card>

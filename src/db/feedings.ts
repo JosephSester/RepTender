@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 import { parseISO } from 'date-fns';
 import type { Feeding, FeedingOutcome, Pet, Regurgitation } from '../domain/types';
-import { pushBackOverride } from '../domain/feeding';
+import { isValidPushBackDays, MAX_PUSH_BACK_DAYS, pushBackOverride } from '../domain/feeding';
 import { db } from './db';
 import { newId, nowIso, ValidationError } from './ids';
 
@@ -34,8 +34,8 @@ async function addRegurgitation(
   pet: Pet,
   r: { feedingId: string; at: string; pushBackDays: number | null; notes?: string },
 ): Promise<Regurgitation> {
-  if (r.pushBackDays !== null && !(Number.isInteger(r.pushBackDays) && r.pushBackDays >= 1)) {
-    throw new ValidationError('Push back must be at least 1 day');
+  if (r.pushBackDays !== null && !isValidPushBackDays(r.pushBackDays)) {
+    throw new ValidationError(`Push back must be 1 to ${MAX_PUSH_BACK_DAYS} days`);
   }
   const ts = nowIso();
   const rec: Regurgitation = {

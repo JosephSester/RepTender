@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, isSameDay, parseISO } from 'date-fns';
+import { differenceInCalendarDays, isSameDay, isValid, parseISO } from 'date-fns';
 import type { CareCompletion, CareTask, Feeding, Pet } from './types';
 import { dateKey } from './dates';
 import { dueStatus, nextFeedingDue, type DueStatus } from './feeding';
@@ -83,7 +83,7 @@ export interface DayGroup {
 export function comingUp(feedings: readonly FeedingSource[], care: readonly CareSource[], now: Date, days = 7): DayGroup[] {
   const groups = new Map<string, ScheduleItem[]>();
   for (const item of allItems(feedings, care, now)) {
-    if (!item.due) continue;
+    if (!item.due || !isValid(item.due)) continue; // an out-of-range stored interval must not crash Schedule
     const inDays = differenceInCalendarDays(item.due, now);
     if (inDays < 1 || inDays > days) continue;
     const key = dateKey(item.due);

@@ -101,6 +101,28 @@ describe('ShedsScreen', () => {
     expect((await listSheds(petId))[0]).toMatchObject({ quality: 'stuck', notes: 'Eye caps stuck', date: '2026-11-08' });
   });
 
+  it('lets a backdated shed through by clearing the pre-filled in-blue date', async () => {
+    await threeSheds();
+    renderSheds();
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark "in blue" (eyes cloudy)' }));
+    expect(await screen.findByText('In blue since Nov 8')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Log shed' }));
+    const sheet = screen.getByRole('dialog', { name: 'Log shed' });
+    fireEvent.change(within(sheet).getByLabelText('Shed date'), { target: { value: '2026-11-01' } });
+    expect(within(sheet).getByText(/blue date is after the shed date/)).toBeInTheDocument();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save shed' }));
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('on or before the shed date');
+
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Clear blue date' }));
+    expect(within(sheet).getByLabelText('Went into blue')).toHaveValue('');
+    expect(within(sheet).queryByText(/blue date is after the shed date/)).toBeNull();
+    expect(within(sheet).queryByRole('button', { name: 'Clear blue date' })).toBeNull();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save shed' }));
+    await vi.waitFor(async () => expect(await listSheds(petId)).toHaveLength(4));
+    expect((await listSheds(petId)).find((x) => x.date === '2026-11-01')).toMatchObject({ inBlueDate: undefined });
+    expect((await getPet(petId))!.inBlueSince).toBe('2026-11-08'); // the older shed leaves the mark alone
+  });
+
   it('a cleared shed date blocks saving without crashing', async () => {
     renderSheds();
     await userEvent.click(await screen.findByRole('button', { name: 'Log shed' }));
